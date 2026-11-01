@@ -280,22 +280,22 @@ html_template = f'''<!DOCTYPE html>
       <!-- 難易度Levelタブ -->
       <div class="flex items-center gap-1 overflow-x-auto no-scrollbar" id="level-tabs-container">
         <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-semibold bg-emerald-500 text-white" data-level="1">
-          Lv.1 主要都市 <span class="tab-count font-normal opacity-80">(0)</span>
+          <span class="tab-label">Lv.1 主要都市</span> <span class="tab-count font-normal opacity-80">(0)</span>
         </button>
         <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-level="2">
-          Lv.2 市・区 <span class="tab-count font-normal opacity-80">(0)</span>
+          <span class="tab-label">Lv.2 市</span> <span class="tab-count font-normal opacity-80">(0)</span>
         </button>
         <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-level="3">
-          Lv.3 町 <span class="tab-count font-normal opacity-80">(0)</span>
+          <span class="tab-label">Lv.3 町</span> <span class="tab-count font-normal opacity-80">(0)</span>
         </button>
         <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-level="4">
-          Lv.4 村 <span class="tab-count font-normal opacity-80">(0)</span>
+          <span class="tab-label">Lv.4 村</span> <span class="tab-count font-normal opacity-80">(0)</span>
         </button>
         <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-level="ALL">
-          全自治体 <span class="tab-count font-normal opacity-80">(0)</span>
+          <span class="tab-label">全自治体</span> <span class="tab-count font-normal opacity-80">(0)</span>
         </button>
         <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-rose-950/40 text-rose-300 border border-rose-800/50 hover:bg-rose-900/40 hidden" data-level="WEAK">
-          ⚠️ 弱点復習 <span id="weak-tab-count" class="tab-count font-bold">(0)</span>
+          <span class="tab-label">⚠️ 弱点復習</span> <span id="weak-tab-count" class="tab-count font-bold">(0)</span>
         </button>
       </div>
 
@@ -525,6 +525,8 @@ html_template = f'''<!DOCTYPE html>
       'capital': '県庁所在地',
       'core': '中核市',
       'special': '特例市',
+      'major': '主要都市',
+      'city_all': '市',
       'city': '一般市',
       'ward': '特別区',
       'town': '町',
@@ -1286,7 +1288,7 @@ html_template = f'''<!DOCTYPE html>
     }}
 
     /* ========================================================
-       Level タブ & 出題ステージ制御
+       Level タブ & 出題ステージ制御 (例外処理・動的昇格・0件除外)
        ======================================================== */
     function setupLevelTabs() {{
       const prefCode = state.selectedPref.code;
@@ -1298,11 +1300,15 @@ html_template = f'''<!DOCTYPE html>
       }});
 
       const weakList = Store.getWeakList(prefCode);
+      const isTokyo = prefCode === '13';
+      const isSmallCityPref = counts['2'] === 0 && counts['1'] > 0;
 
-      // 各タブの件数更新
+      // 各タブの表示・非表示と動的ラベル
       document.querySelectorAll('.level-tab-btn').forEach(btn => {{
         const lvl = btn.dataset.level;
+        const textSpan = btn.querySelector('.tab-label');
         const countSpan = btn.querySelector('.tab-count');
+
         if (lvl === 'WEAK') {{
           countSpan.textContent = `(${{weakList.length}})`;
           if (weakList.length > 0) {{
@@ -1310,24 +1316,42 @@ html_template = f'''<!DOCTYPE html>
           }} else {{
             btn.classList.add('hidden');
           }}
+        }} else if (lvl === 'ALL') {{
+          countSpan.textContent = `(${{counts['ALL']}})`;
+          btn.classList.remove('hidden');
         }} else {{
-          countSpan.textContent = `(${{counts[lvl] || 0}})`;
-          // 村が0件の県ではLevel 4タブを非表示に
-          if (lvl === '4' && counts['4'] === 0) {{
+          const count = counts[lvl] || 0;
+          countSpan.textContent = `(${{count}})`;
+
+          // ルール2: 0件ステージの完全非表示（村なし県、統合されたLevel 2など）
+          if (count === 0) {{
             btn.classList.add('hidden');
           }} else {{
             btn.classList.remove('hidden');
+            // ラベルの動的カスタマイズ
+            if (lvl === '1') {{
+              if (isTokyo) textSpan.textContent = 'Lv.1 特別区';
+              else if (isSmallCityPref) textSpan.textContent = 'Lv.1 市全域';
+              else textSpan.textContent = 'Lv.1 主要都市';
+            }} else if (lvl === '2') {{
+              if (isTokyo) textSpan.textContent = 'Lv.2 市(多摩)';
+              else textSpan.textContent = 'Lv.2 市';
+            }} else if (lvl === '3') {{
+              textSpan.textContent = 'Lv.3 町';
+            }} else if (lvl === '4') {{
+              textSpan.textContent = 'Lv.4 村';
+            }}
           }}
         }}
       }});
 
-      // 初期Level選択: 選択中のLevelに自治体がなければ次のLevelへ
+      // 初期Level選択: 選択中のLevelが非表示（0件）になっている場合、利用可能な最初のLevelを選択
       if (state.selectedLevel !== 'ALL' && state.selectedLevel !== 'WEAK') {{
         if (counts[state.selectedLevel] === 0) {{
-          // 該当Levelが0件なら利用可能な最初のLevelにする
           if (counts['1'] > 0) state.selectedLevel = '1';
           else if (counts['2'] > 0) state.selectedLevel = '2';
           else if (counts['3'] > 0) state.selectedLevel = '3';
+          else if (counts['4'] > 0) state.selectedLevel = '4';
           else state.selectedLevel = 'ALL';
         }}
       }}
@@ -1497,7 +1521,18 @@ html_template = f'''<!DOCTYPE html>
 
       if (state.currentMode === 'locate') {{
         // 場所当てモード
-        document.getElementById('locate-level-tag').textContent = `Lv.${{q.lvl}} ${{TYPE_LABELS[q.t] || '市町村'}}`;
+        let lvlLabel = `Lv.${{q.lvl}}`;
+        if (state.selectedPref.code === '13') {{
+          if (q.lvl === 1) lvlLabel = '特別区';
+          else if (q.lvl === 2) lvlLabel = '市(多摩)';
+          else if (q.lvl === 3) lvlLabel = '町';
+          else if (q.lvl === 4) lvlLabel = '村';
+        }} else if (q.t === 'city_all') {{
+          lvlLabel = '市(全域)';
+        }} else {{
+          lvlLabel = `Lv.${{q.lvl}} ${{TYPE_LABELS[q.t] || '市町村'}}`;
+        }}
+        document.getElementById('locate-level-tag').textContent = lvlLabel;
         document.getElementById('locate-progress-tag').textContent = `問 ${{currentNum}} / ${{totalQ}}`;
         document.getElementById('locate-question-name').textContent = q.n;
         document.getElementById('locate-kana').textContent = `（${{q.k}}）`;

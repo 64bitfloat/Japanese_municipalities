@@ -103,6 +103,52 @@ for c in range(40131, 40138): WARD_TO_CITY[str(c)] = "40130"
 # 熊本市 43100
 for c in range(43101, 43106): WARD_TO_CITY[str(c)] = "43100"
 
+# 追加主要都市リスト（Level 1最低4都市保証用）
+PROMOTED_CITIES = {
+    "苫小牧市", # 北海道
+    "奥州市", "一関市", "花巻市", # 岩手
+    "石巻市", "大崎市", "登米市", # 宮城
+    "横手市", "大仙市", "由利本荘市", # 秋田
+    "鶴岡市", "酒田市", "米沢市", # 山形
+    "日立市", "ひたちなか市", # 茨城
+    "小山市", "栃木市", "足利市", # 栃木
+    "市川市", "松戸市", # 千葉
+    "三条市", # 新潟
+    "白山市", "小松市", "加賀市", # 石川
+    "甲斐市", "南アルプス市", "笛吹市", # 山梨
+    "上田市", "飯田市", # 長野
+    "大垣市", "各務原市", "多治見市", # 岐阜
+    "鈴鹿市", "松阪市", # 三重
+    "草津市", "長浜市", "彦根市", # 滋賀
+    "宇治市", "亀岡市", "舞鶴市", # 京都
+    "橿原市", "生駒市", "大和郡山市", # 奈良
+    "津山市", "総社市", # 岡山
+    "東広島市", # 広島
+    "宇部市", "周南市", # 山口
+    "今治市", "新居浜市", "西条市", # 愛媛
+    "南国市", "四万十市", "香南市", # 高知
+    "飯塚市", # 福岡
+    "諫早市", "大村市", # 長崎
+    "八代市", "天草市", "玉名市", # 熊本
+    "別府市", "中津市", "日田市", # 大分
+    "霧島市", "鹿屋市", "薩摩川内市", # 鹿児島
+    "沖縄市", "うるま市", "浦添市", # 沖縄
+}
+
+# 市の総数が10件以下の都道府県コード（Level 1に市全域を統合）
+SMALL_CITY_PREFS = {
+    "02", # 青森 (10)
+    "16", # 富山 (10)
+    "18", # 福井 (9)
+    "30", # 和歌山 (9)
+    "31", # 鳥取 (4)
+    "32", # 島根 (8)
+    "36", # 徳島 (8)
+    "37", # 香川 (8)
+    "41", # 佐賀 (10)
+    "45", # 宮崎 (9)
+}
+
 municipalities = {}
 
 for item in data:
@@ -118,7 +164,7 @@ for item in data:
     lat = item.get('lat', None)
     lng = item.get('lng', None)
 
-    # Skip prefecture level entries (e.g. Hokkaido pref gov where city is empty or code ends with 000 and not designated)
+    # Skip prefecture level entries
     if not city or (code5.endswith('000') and code5 not in DESIGNATED_CITIES):
         continue
 
@@ -143,12 +189,32 @@ for item in data:
         continue
 
     # Determine Level & Subtype
-    if code5 in DESIGNATED_CITIES or city in CAPITAL_NAMES or city in CORE_CITIES or city in SPECIAL_CITIES:
+    # ルール1: 東京都の例外指定
+    if pref_code == '13':
+        if m_type == 'ward':
+            level = 1
+            sub_type = 'ward'
+        elif m_type == 'city':
+            level = 2
+            sub_type = 'city' # 八王子市も含めて多摩地域26市はLevel 2
+        elif m_type == 'town':
+            level = 3
+            sub_type = 'town'
+        else: # village
+            level = 4
+            sub_type = 'village'
+    # ルール3: 市が10件以下の都道府県は、市全域をLevel 1に統合
+    elif pref_code in SMALL_CITY_PREFS and m_type == 'city':
         level = 1
-        sub_type = 'designated' if code5 in DESIGNATED_CITIES else ('capital' if city in CAPITAL_NAMES else ('core' if city in CORE_CITIES else 'special'))
-    elif m_type == 'city' or m_type == 'ward':
-        level = 2
-        sub_type = 'ward' if m_type == 'ward' else 'city'
+        sub_type = 'city_all'
+    elif m_type == 'city':
+        # ルール4: 主要都市（政令市・県庁・中核市・特例市・昇格指定都市）はLevel 1
+        if code5 in DESIGNATED_CITIES or city in CAPITAL_NAMES or city in CORE_CITIES or city in SPECIAL_CITIES or city in PROMOTED_CITIES:
+            level = 1
+            sub_type = 'designated' if code5 in DESIGNATED_CITIES else ('capital' if city in CAPITAL_NAMES else ('core' if city in CORE_CITIES else 'major'))
+        else:
+            level = 2
+            sub_type = 'city'
     elif m_type == 'town':
         level = 3
         sub_type = 'town'
