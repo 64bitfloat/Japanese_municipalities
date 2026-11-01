@@ -308,9 +308,12 @@
 
           <!-- モード1: 場所当て (タップ回答) ドック -->
           <div id="dock-locate" class="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-2xl">
-            <div class="flex items-center justify-between gap-2 mb-1 sm:mb-2">
-              <span id="locate-level-tag" class="text-[10px] sm:text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">Level 1 主要都市</span>
-              <span id="locate-progress-tag" class="text-[11px] sm:text-xs font-medium text-slate-400">問題 1 / 10</span>
+            <div class="flex items-center justify-between gap-1.5 mb-1 sm:mb-2">
+              <div class="flex items-center gap-1.5 truncate">
+                <span id="locate-level-tag" class="text-[10px] sm:text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full shrink-0">Level 1 主要都市</span>
+                <span id="locate-accuracy-tag" class="text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded-full border shrink-0 text-slate-400 bg-slate-700/40 border-slate-600/40">正答率: --%</span>
+              </div>
+              <span id="locate-progress-tag" class="text-[11px] sm:text-xs font-medium text-slate-400 shrink-0">問題 1 / 10</span>
             </div>
 
             <div class="flex items-center justify-between gap-2">
@@ -340,12 +343,13 @@
 
           <!-- モード2: 名前当て (4択回答) ドック -->
           <div id="dock-name" class="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-2xl hidden">
-            <div class="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
-              <div class="flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-                <span class="text-[11px] sm:text-xs font-bold text-amber-300">黄色の自治体はどれ？</span>
+            <div class="flex items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0"></span>
+                <span class="text-[11px] sm:text-xs font-bold text-amber-300 truncate">黄色の自治体はどれ？</span>
+                <span id="name-accuracy-tag" class="text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded-full border shrink-0 text-slate-400 bg-slate-700/40 border-slate-600/40">正答率: --%</span>
               </div>
-              <span id="name-progress-tag" class="text-[11px] sm:text-xs font-medium text-slate-400">問題 1 / 10</span>
+              <span id="name-progress-tag" class="text-[11px] sm:text-xs font-medium text-slate-400 shrink-0">問題 1 / 10</span>
             </div>
 
             <!-- 4択ボタングリッド -->
@@ -1013,23 +1017,7 @@
         };
       }
 
-      // 全自治体・弱点復習時はクリア済みでも緑色にせず同色（白）に統一
-      const shouldHighlightCleared = (state.selectedLevel !== 'ALL' && state.selectedLevel !== 'WEAK');
-
-      // 出題対象自治体: 過去にクリア済み
-      const rec = Store.getRecord(code);
-      if (shouldHighlightCleared && rec && rec.correct > 0) {
-        return {
-          fillColor: '#ecfdf5',
-          fillOpacity: 0.92,
-          color: isWard ? '#a7f3d0' : '#34d399',
-          weight: baseWeight,
-          dashArray: dash,
-          opacity: 1
-        };
-      }
-
-      // 出題対象自治体: 未クリア（クリアな白〜極薄グレー）
+      // 出題対象自治体: 消去法防止のため常に均一な白地図スタイル（クリア済みでも同色）
       return {
         fillColor: '#f8fafc',
         fillOpacity: 0.95,
@@ -1049,16 +1037,6 @@
           color: '#64748b',
           weight: 1.8,
           opacity: 0.85
-        };
-      }
-      const shouldHighlightCleared = (state.selectedLevel !== 'ALL' && state.selectedLevel !== 'WEAK');
-      const rec = Store.getRecord(code);
-      if (shouldHighlightCleared && rec && rec.correct > 0) {
-        return {
-          fill: false,
-          color: '#059669',
-          weight: 2.4,
-          opacity: 1
         };
       }
       return {
@@ -1451,6 +1429,43 @@
       }
     }
 
+    function getAccuracyInfo(code) {
+      const rec = Store.getRecord(code);
+      if (!rec || (rec.correct + rec.wrong === 0)) {
+        return {
+          text: '正答率: 未挑戦',
+          color: 'text-slate-400 bg-slate-700/40 border-slate-600/40'
+        };
+      }
+      const total = rec.correct + rec.wrong;
+      const pct = Math.round((rec.correct / total) * 100);
+      let color = 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30';
+      if (pct < 50) {
+        color = 'text-rose-300 bg-rose-500/15 border-rose-500/30';
+      } else if (pct < 80) {
+        color = 'text-amber-300 bg-amber-500/15 border-amber-500/30';
+      }
+      return {
+        text: `正答率: ${pct}% (${rec.correct}/${total})`,
+        color
+      };
+    }
+
+    function updateCurrentAccuracyTag() {
+      if (!state.currentQuestion) return;
+      const acc = getAccuracyInfo(state.currentQuestion.c);
+      const accTagLocate = document.getElementById('locate-accuracy-tag');
+      if (accTagLocate) {
+        accTagLocate.textContent = acc.text;
+        accTagLocate.className = `text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded-full border shrink-0 ${acc.color}`;
+      }
+      const accTagName = document.getElementById('name-accuracy-tag');
+      if (accTagName) {
+        accTagName.textContent = acc.text;
+        accTagName.className = `text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded-full border shrink-0 ${acc.color}`;
+      }
+    }
+
     function loadQuestion() {
       if (state.activeQuestionList.length === 0) {
         if (state.selectedLevel === 'WEAK') {
@@ -1494,6 +1509,9 @@
       const q = state.currentQuestion;
       const totalQ = state.activeQuestionList.length;
       const currentNum = state.currentIndex + 1;
+
+      // 正答率バッジの更新
+      updateCurrentAccuracyTag();
 
       if (state.currentMode === 'locate') {
         // 場所当てモード
@@ -1579,6 +1597,7 @@
       Store.recordAnswer(state.currentQuestion.c, isCorrect);
       updateSpokeHeaderProgress();
       setupLevelTabs();
+      updateCurrentAccuracyTag();
 
       const allBtns = document.querySelectorAll('.choice-btn');
 
@@ -1640,6 +1659,7 @@
       Store.recordAnswer(targetMuni.c, isCorrect);
       updateSpokeHeaderProgress();
       setupLevelTabs();
+      updateCurrentAccuracyTag();
 
       const feedbackBar = document.getElementById('locate-feedback-bar');
       const feedbackContent = document.getElementById('locate-feedback-content');
