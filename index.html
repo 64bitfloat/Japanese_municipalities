@@ -2,15 +2,34 @@
 <html lang="ja" class="h-full bg-slate-900 text-slate-100">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>GeoAnki JP — 全国1,741市区町村 視覚暗記トレーナー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>GeoAnki 1741 — 全国1,741市区町村 視覚ベクター暗記トレーナー</title>
 
-  <!-- 基本メタ情報 & OGP -->
-  <meta name="description" content="全国1,741市区町村（792市・743町・183村・23特別区）を白地図ベクターポリゴンで直感暗記するWebアプリケーション。5桁JISコード完全バインド。" />
-  <meta name="theme-color" content="#0f172a" />
+  <!-- 基本メタ情報 & SEO -->
+  <meta name="description" content="全国1,741市区町村（792市・743町・183村・23特別区）を白地図ベクターポリゴンで直感暗記！JIS団体コード完全準拠・政令指定都市行政区結合・4段階ステップアップ＆苦手克服デッキ搭載。GeoGuessrの地域絞り込みや地理学習に最適化されたSPA Webアプリ。" />
+  <meta name="keywords" content="GeoGuessr, ジオゲッサー, 市区町村, 暗記, 日本地図, 自治体, JISコード, 白地図, 地理, Anki" />
+  <meta name="author" content="64bitfloat" />
+  <meta name="theme-color" content="#10b981" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <!-- Open Graph Protocol (OGP / Discord / Facebook / LINE / Slack) -->
+  <meta property="og:site_name" content="GeoAnki 1741" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="GeoAnki JP — 全国1,741市区町村 視覚暗記トレーナー" />
-  <meta property="og:description" content="全国1,741市区町村を白地図ベクターポリゴンで効率的に暗記！4段階難易度、3つの学習モード、島嶼部・極小自治体アシスト機能搭載。" />
+  <meta property="og:url" content="https://64bitfloat.github.io/Japanese_municipalities/" />
+  <meta property="og:title" content="GeoAnki 1741 — 全国1,741市区町村 視覚ベクター暗記トレーナー" />
+  <meta property="og:description" content="全国1,741市区町村（792市・743町・183村・23特別区）を白地図ベクターポリゴンで直感暗記！JISコード完全準拠・政令指定都市行政区結合・4段階難易度＆弱点復習デッキ搭載。GeoGuessr・地理学習特化アプリ。" />
+  <meta property="og:image" content="https://opengraph.githubassets.com/1/64bitfloat/Japanese_municipalities" />
+  <meta property="og:image:alt" content="GeoAnki 1741 — 全国1,741市区町村 視覚ベクター暗記トレーナー" />
+  <meta property="og:locale" content="ja_JP" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@64bitfloat" />
+  <meta name="twitter:creator" content="@64bitfloat" />
+  <meta name="twitter:title" content="GeoAnki 1741 — 全国1,741市区町村 視覚ベクター暗記トレーナー" />
+  <meta name="twitter:description" content="全国1,741市区町村を白地図ベクターポリゴンで直感暗記！JISコード準拠・政令市行政区結合・苦手克服デッキ搭載。GeoGuessrの地域特定力を鍛える特訓アプリ。" />
+  <meta name="twitter:image" content="https://opengraph.githubassets.com/1/64bitfloat/Japanese_municipalities" />
 
   <!-- ファビコン -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2310b981'/><text x='50' y='64' font-size='44' font-weight='900' fill='white' text-anchor='middle' font-family='sans-serif'>1741</text></svg>" />
@@ -43,9 +62,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
   <style>
-    /* モバイルでの誤タッチ・ダブルタップズーム防止 */
-    html, body, button, .no-dbltap {
+    /* モバイルビューポート & スクロール制御 */
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
       touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic UI", sans-serif;
@@ -65,10 +88,19 @@
     .polygon-pulse {
       animation: pulse-yellow 1.2s infinite ease-in-out;
     }
+    /* スクロールバー非表示（横スクロールピルバー等） */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
     /* カスタムスクロールバー */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
     }
     ::-webkit-scrollbar-track {
       background: #0f172a;
@@ -160,30 +192,28 @@
   <!-- ========================================== -->
   <div id="screen-spoke" class="flex-1 flex flex-col h-full overflow-hidden hidden">
     <!-- Spoke 上部ヘッダー -->
-    <header class="bg-slate-800/95 backdrop-blur border-b border-slate-700/80 px-3 py-2 shrink-0 z-20 flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2">
-        <button id="btn-back-hub" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs sm:text-sm font-semibold text-white transition active:scale-95">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
-          <span>戻る</span>
+    <header class="bg-slate-800/95 backdrop-blur border-b border-slate-700/80 px-2.5 py-1.5 sm:px-3 sm:py-2 shrink-0 z-20 flex items-center justify-between gap-1.5">
+      <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+        <button id="btn-back-hub" class="flex items-center gap-1 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs sm:text-sm font-semibold text-white transition active:scale-95 shrink-0" title="都道府県選択に戻る">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+          <span class="hidden sm:inline">戻る</span>
         </button>
-        <div>
-          <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-            <span id="spoke-pref-name">都道府県名</span>
-            <span id="spoke-pref-count-badge" class="text-xs font-medium text-slate-300 bg-slate-700/70 px-2 py-0.5 rounded-full">35自治体</span>
-          </h2>
+        <div class="flex items-baseline gap-1.5 truncate">
+          <h2 id="spoke-pref-name" class="text-sm sm:text-base font-bold text-white tracking-wide truncate">都道府県名</h2>
+          <span id="spoke-pref-count-badge" class="text-[10px] sm:text-xs font-medium text-slate-300 bg-slate-700/70 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">35自治体</span>
         </div>
       </div>
 
       <!-- 右側：進捗 & 音声設定 -->
-      <div class="flex items-center gap-2">
-        <div class="text-right hidden sm:block">
-          <div class="text-xs text-slate-400">制覇状況</div>
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="text-right">
+          <div class="text-[10px] text-slate-400 leading-none hidden sm:block mb-0.5">制覇状況</div>
           <div class="text-xs font-bold text-emerald-400">
-            <span id="spoke-cleared-count">0</span> / <span id="spoke-total-count">0</span>
-            <span id="spoke-cleared-pct" class="text-slate-300 font-normal ml-0.5">(0%)</span>
+            <span id="spoke-cleared-count">0</span>/<span id="spoke-total-count">0</span>
+            <span id="spoke-cleared-pct" class="text-slate-300 font-normal ml-0.5 text-[10px] sm:text-xs">(0%)</span>
           </div>
         </div>
-        <button id="btn-toggle-sound" class="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition" title="効果音切替">
+        <button id="btn-toggle-sound" class="p-1.5 sm:p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition" title="効果音切替">
           <svg id="icon-sound-on" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
           <svg id="icon-sound-off" class="w-4 h-4 hidden text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
         </button>
@@ -191,39 +221,39 @@
     </header>
 
     <!-- Spoke サブコントロールバー (難易度Levelタブ & 操作モード) -->
-    <div class="bg-slate-900 border-b border-slate-800 px-3 py-1.5 shrink-0 flex flex-wrap items-center justify-between gap-2 z-10">
-      <!-- 難易度Levelタブ -->
-      <div class="flex items-center gap-1 overflow-x-auto no-scrollbar" id="level-tabs-container">
-        <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-semibold bg-emerald-500 text-white" data-level="1">
+    <div class="bg-slate-900 border-b border-slate-800 px-2 sm:px-3 py-1 shrink-0 flex items-center justify-between gap-1.5 z-10">
+      <!-- 難易度Levelタブ (スマホでも1行横スクロール・省スペース設計) -->
+      <div class="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1 min-w-0" id="level-tabs-container">
+        <button class="level-tab-btn px-2 sm:px-2.5 py-0.5 sm:py-1 rounded text-[11px] sm:text-xs font-semibold bg-emerald-500 text-white shrink-0" data-level="1">
           <span class="tab-label">Lv.1 主要都市</span> <span class="tab-count font-normal opacity-80">(0)</span>
         </button>
-        <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-level="2">
+        <button class="level-tab-btn px-2 sm:px-2.5 py-0.5 sm:py-1 rounded text-[11px] sm:text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0" data-level="2">
           <span class="tab-label">Lv.2 市</span> <span class="tab-count font-normal opacity-80">(0)</span>
         </button>
-        <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-level="3">
+        <button class="level-tab-btn px-2 sm:px-2.5 py-0.5 sm:py-1 rounded text-[11px] sm:text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0" data-level="3">
           <span class="tab-label">Lv.3 町</span> <span class="tab-count font-normal opacity-80">(0)</span>
         </button>
-        <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-level="4">
+        <button class="level-tab-btn px-2 sm:px-2.5 py-0.5 sm:py-1 rounded text-[11px] sm:text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0" data-level="4">
           <span class="tab-label">Lv.4 村</span> <span class="tab-count font-normal opacity-80">(0)</span>
         </button>
-        <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-level="ALL">
+        <button class="level-tab-btn px-2 sm:px-2.5 py-0.5 sm:py-1 rounded text-[11px] sm:text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0" data-level="ALL">
           <span class="tab-label">全自治体</span> <span class="tab-count font-normal opacity-80">(0)</span>
         </button>
-        <button class="level-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-rose-950/40 text-rose-300 border border-rose-800/50 hover:bg-rose-900/40 hidden" data-level="WEAK">
+        <button class="level-tab-btn px-2 sm:px-2.5 py-0.5 sm:py-1 rounded text-[11px] sm:text-xs font-medium bg-rose-950/40 text-rose-300 border border-rose-800/50 hover:bg-rose-900/40 hidden shrink-0" data-level="WEAK">
           <span class="tab-label">⚠️ 弱点復習</span> <span id="weak-tab-count" class="tab-count font-bold">(0)</span>
         </button>
       </div>
 
-      <!-- 操作モード切替セグメント -->
-      <div class="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700">
-        <button class="mode-tab-btn px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-700 text-emerald-400 shadow" data-mode="locate" title="場所当てクイズ">
-          🎯 場所当て
+      <!-- 操作モード切替セグメント (スマホではアイコンメインで省スペース) -->
+      <div class="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 shrink-0">
+        <button class="mode-tab-btn px-2 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-semibold bg-slate-700 text-emerald-400 shadow" data-mode="locate" title="場所当てクイズ">
+          <span>🎯</span><span class="hidden sm:inline ml-1">場所当て</span>
         </button>
-        <button class="mode-tab-btn px-2.5 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white" data-mode="name" title="名前当て4択">
-          🔤 名前当て
+        <button class="mode-tab-btn px-2 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-medium text-slate-300 hover:text-white" data-mode="name" title="名前当て4択">
+          <span>🔤</span><span class="hidden sm:inline ml-1">名前当て</span>
         </button>
-        <button class="mode-tab-btn px-2.5 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white" data-mode="explore" title="自由閲覧モード">
-          🔍 探索
+        <button class="mode-tab-btn px-2 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-medium text-slate-300 hover:text-white" data-mode="explore" title="自由閲覧モード">
+          <span>🔍</span><span class="hidden sm:inline ml-1">探索</span>
         </button>
       </div>
     </div>
@@ -234,20 +264,22 @@
       <div id="map" class="w-full h-full z-0"></div>
 
       <!-- 地図上フローティング救済UI（島嶼部ズーム & フォーカス） -->
-      <div class="absolute top-3 right-3 z-10 flex flex-col gap-2 items-end">
+      <div class="absolute top-2 right-2 sm:top-3 sm:right-3 z-10 flex flex-col gap-1 sm:gap-1.5 items-end">
         <!-- 島嶼部クイックズームボタン群 (対象県でのみ動的生成) -->
-        <div id="island-buttons-container" class="flex flex-col gap-1 items-end"></div>
+        <div id="island-buttons-container" class="flex flex-col gap-0.5 sm:gap-1 items-end"></div>
 
-        <!-- 虫眼鏡（フォーカス）アシストボタン -->
-        <button id="btn-focus-current" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-white border border-slate-600/70 shadow-lg backdrop-blur text-xs font-semibold transition active:scale-95" title="出題中の自治体にスムーズズーム">
-          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
-          <span>フォーカス</span>
-        </button>
+        <div class="flex items-center gap-1">
+          <!-- 虫眼鏡（フォーカス）アシストボタン -->
+          <button id="btn-focus-current" class="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-white border border-slate-600/70 shadow-lg backdrop-blur text-[11px] sm:text-xs font-semibold transition active:scale-95" title="出題中の自治体にスムーズズーム">
+            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+            <span class="hidden sm:inline">フォーカス</span>
+          </button>
 
-        <!-- 全体再表示ボタン -->
-        <button id="btn-reset-bounds" class="p-2 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600/70 shadow-lg backdrop-blur text-xs transition active:scale-95" title="県全体を表示">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
-        </button>
+          <!-- 全体再表示ボタン -->
+          <button id="btn-reset-bounds" class="p-1 sm:p-2 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600/70 shadow-lg backdrop-blur text-xs transition active:scale-95" title="県全体を表示">
+            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+          </button>
+        </div>
       </div>
 
       <!-- ローディングインジケーター -->
@@ -258,7 +290,7 @@
       </div>
 
       <!-- トースト通知 (対象外自治体タップ時の案内) -->
-      <div id="map-toast" class="absolute top-14 left-1/2 -translate-x-1/2 z-30 max-w-md bg-slate-900/95 border border-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur transition-all duration-300 opacity-0 pointer-events-none translate-y-2 text-center">
+      <div id="map-toast" class="absolute top-12 left-1/2 -translate-x-1/2 z-30 max-w-[90vw] sm:max-w-md bg-slate-900/95 border border-slate-600 text-slate-200 text-xs px-3.5 py-2 rounded-xl shadow-2xl backdrop-blur transition-all duration-300 opacity-0 pointer-events-none translate-y-2 text-center truncate">
         <span id="map-toast-text">通知メッセージ</span>
       </div>
 
@@ -271,35 +303,35 @@
       <!-- ========================================== -->
       <!-- 下部操作・回答ドック (モードに応じたUI) -->
       <!-- ========================================== -->
-      <div class="absolute bottom-0 left-0 right-0 z-20 p-2 sm:p-4 pointer-events-none">
+      <div class="absolute bottom-0 left-0 right-0 z-20 p-2 sm:p-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pointer-events-none">
         <div class="max-w-xl mx-auto pointer-events-auto">
 
           <!-- モード1: 場所当て (タップ回答) ドック -->
-          <div id="dock-locate" class="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3.5 shadow-2xl">
-            <div class="flex items-center justify-between gap-2 mb-2">
-              <span id="locate-level-tag" class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Level 1 主要都市</span>
-              <span id="locate-progress-tag" class="text-xs font-medium text-slate-400">問題 1 / 10</span>
+          <div id="dock-locate" class="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-2xl">
+            <div class="flex items-center justify-between gap-2 mb-1 sm:mb-2">
+              <span id="locate-level-tag" class="text-[10px] sm:text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">Level 1 主要都市</span>
+              <span id="locate-progress-tag" class="text-[11px] sm:text-xs font-medium text-slate-400">問題 1 / 10</span>
             </div>
 
-            <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center justify-between gap-2">
               <div class="flex-1 min-w-0">
-                <div class="text-xs text-slate-400 flex items-center gap-1.5">
-                  <span>この自治体を地図上でタップ：</span>
+                <div class="text-[10px] sm:text-xs text-slate-400 flex items-center gap-1 truncate">
+                  <span>地図上でタップ：</span>
                   <span id="locate-kana" class="text-slate-300 font-medium">（ふりがな）</span>
                 </div>
-                <div id="locate-question-name" class="text-xl sm:text-2xl font-black text-white truncate tracking-wide">
+                <div id="locate-question-name" class="text-lg sm:text-2xl font-black text-white truncate tracking-wide leading-tight">
                   〇〇市
                 </div>
               </div>
 
               <!-- スキップボタン -->
-              <button id="btn-locate-skip" class="px-3 py-2 rounded-xl bg-slate-700/70 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition active:scale-95 shrink-0">
+              <button id="btn-locate-skip" class="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl bg-slate-700/70 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition active:scale-95 shrink-0">
                 スキップ →
               </button>
             </div>
 
             <!-- フィードバック結果バー (正解/不正解時に出現) -->
-            <div id="locate-feedback-bar" class="mt-2.5 pt-2.5 border-t border-slate-700/60 hidden">
+            <div id="locate-feedback-bar" class="mt-2 pt-2 border-t border-slate-700/60 hidden">
               <div id="locate-feedback-content" class="flex items-center justify-between gap-2">
                 <!-- JSで動的更新 -->
               </div>
@@ -307,44 +339,44 @@
           </div>
 
           <!-- モード2: 名前当て (4択回答) ドック -->
-          <div id="dock-name" class="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3.5 shadow-2xl hidden">
-            <div class="flex items-center justify-between gap-2 mb-2">
+          <div id="dock-name" class="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-2xl hidden">
+            <div class="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
               <div class="flex items-center gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-                <span class="text-xs font-bold text-amber-300">黄色く光っている自治体はどれ？</span>
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                <span class="text-[11px] sm:text-xs font-bold text-amber-300">黄色の自治体はどれ？</span>
               </div>
-              <span id="name-progress-tag" class="text-xs font-medium text-slate-400">問題 1 / 10</span>
+              <span id="name-progress-tag" class="text-[11px] sm:text-xs font-medium text-slate-400">問題 1 / 10</span>
             </div>
 
             <!-- 4択ボタングリッド -->
-            <div class="grid grid-cols-2 gap-2" id="choice-buttons-grid">
+            <div class="grid grid-cols-2 gap-1.5 sm:gap-2" id="choice-buttons-grid">
               <!-- JSで4つの選択肢ボタンを生成 -->
             </div>
           </div>
 
           <!-- モード3: エクスプローラー (閲覧・予習) ドック -->
-          <div id="dock-explore" class="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3.5 shadow-2xl hidden">
-            <div id="explore-empty-state" class="text-center py-2 text-slate-400 text-xs">
+          <div id="dock-explore" class="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-2xl hidden">
+            <div id="explore-empty-state" class="text-center py-1 sm:py-2 text-slate-400 text-xs">
               地図上のポリゴンをタップすると自治体情報が表示されます
             </div>
             <div id="explore-detail-state" class="hidden">
               <div class="flex items-start justify-between gap-2">
                 <div>
-                  <div class="flex items-center gap-2 mb-0.5">
-                    <span id="explore-type-badge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">中核市</span>
-                    <span id="explore-kana" class="text-xs text-slate-400">はちおうじし</span>
+                  <div class="flex items-center gap-1.5 mb-0.5">
+                    <span id="explore-type-badge" class="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">中核市</span>
+                    <span id="explore-kana" class="text-[10px] sm:text-xs text-slate-400">はちおうじし</span>
                   </div>
-                  <h3 id="explore-name" class="text-lg sm:text-xl font-black text-white">八王子市</h3>
+                  <h3 id="explore-name" class="text-base sm:text-xl font-black text-white">八王子市</h3>
                 </div>
                 <div class="text-right">
-                  <div class="text-[10px] text-slate-400">団体コード (JIS)</div>
+                  <div class="text-[9px] sm:text-[10px] text-slate-400">団体コード (JIS)</div>
                   <div id="explore-code" class="text-xs font-mono font-bold text-slate-200">13201</div>
                 </div>
               </div>
 
-              <div class="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                <div id="explore-status-tag" class="text-slate-400">未挑戦</div>
-                <button id="btn-explore-quiz-this" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
+              <div class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                <div id="explore-status-tag" class="text-[11px] sm:text-xs text-slate-400">未挑戦</div>
+                <button id="btn-explore-quiz-this" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 text-[11px] sm:text-xs">
                   <span>この自治体をテスト</span>
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
@@ -762,20 +794,21 @@
       if (!pref.islands || pref.islands.length === 0) return;
 
       const group = document.createElement('div');
-      group.className = 'flex flex-col gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700/80 shadow-lg backdrop-blur';
+      group.className = 'flex flex-col gap-0.5 sm:gap-1 bg-slate-800/90 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-slate-700/80 shadow-lg backdrop-blur';
 
       pref.islands.forEach(island => {
         const btn = document.createElement('button');
-        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-700 transition active:scale-95 text-left';
+        btn.className = 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-700 transition active:scale-95 text-left';
         btn.innerHTML = `📍 ${island.label}`;
         btn.onclick = () => {
           if (state.map) {
+            const isMobile = window.innerWidth < 640;
             const targetBounds = (island.label === '全域' && state.geoJsonLayer)
               ? state.geoJsonLayer.getBounds()
               : L.latLngBounds(island.bounds);
             state.map.fitBounds(targetBounds, {
-              paddingTopLeft: [20, 20],
-              paddingBottomRight: [20, window.innerWidth < 640 ? 190 : 140],
+              paddingTopLeft: [isMobile ? 12 : 20, isMobile ? 12 : 20],
+              paddingBottomRight: [isMobile ? 12 : 20, isMobile ? 110 : 140],
               maxZoom: 11
             });
           }
@@ -801,8 +834,10 @@
         maxZoom: 16
       }).setView([36.5, 138.0], 7);
 
-      // ズームコントロールを右上に配置
-      L.control.zoom({ position: 'topright' }).addTo(state.map);
+      // ズームコントロール（スマホではピンチ操作が快適なためPC画面でのみ表示）
+      if (window.innerWidth >= 640) {
+        L.control.zoom({ position: 'topright' }).addTo(state.map);
+      }
 
       // 画面リサイズ・回転時の自動再センタリング
       let resizeTimer = null;
@@ -822,8 +857,8 @@
       if (!state.map || !bounds.isValid()) return;
       const isMobile = window.innerWidth < 640;
       state.map.fitBounds(bounds, {
-        paddingTopLeft: [20, 20],
-        paddingBottomRight: [20, isMobile ? 220 : 160],
+        paddingTopLeft: [isMobile ? 12 : 20, isMobile ? 12 : 20],
+        paddingBottomRight: [isMobile ? 12 : 20, isMobile ? 110 : 160],
         maxZoom: 12
       });
     }
@@ -1529,8 +1564,8 @@
 
       choices.forEach(c => {
         const btn = document.createElement('button');
-        btn.className = 'choice-btn p-3 rounded-xl bg-slate-700/80 hover:bg-slate-700 text-white font-bold text-sm sm:text-base border border-slate-600/70 transition active:scale-95 text-center truncate select-none shadow';
-        btn.innerHTML = `<div>${c.n}</div><div class="text-[11px] font-normal text-slate-400">${c.k}</div>`;
+        btn.className = 'choice-btn p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-700/80 hover:bg-slate-700 text-white font-bold text-xs sm:text-base border border-slate-600/70 transition active:scale-95 text-center truncate select-none shadow';
+        btn.innerHTML = `<div class="truncate leading-tight">${c.n}</div><div class="text-[10px] sm:text-[11px] font-normal text-slate-400 truncate mt-0.5">${c.k}</div>`;
         btn.onclick = () => handleChoiceAnswer(c.c, btn);
         grid.appendChild(btn);
       });
