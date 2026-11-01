@@ -42,9 +42,9 @@ PREFECTURES = [
     {"code": "10", "name": "群馬県", "region": "関東"},
     {"code": "11", "name": "埼玉県", "region": "関東"},
     {"code": "12", "name": "千葉県", "region": "関東"},
-    {"code": "13", "name": "東京都", "region": "関東", "islands": [{"label": "本土", "bounds": [[35.5, 138.9], [35.9, 139.9]]}, {"label": "伊豆・小笠原", "bounds": [[24.0, 139.6], [34.8, 142.3]]}]},
+    {"code": "13", "name": "東京都", "region": "関東", "defaultView": [[35.5, 138.9], [35.9, 139.9]], "islands": [{"label": "全域", "bounds": [[24.0, 138.9], [35.9, 142.3]]}, {"label": "本土", "bounds": [[35.5, 138.9], [35.9, 139.9]]}, {"label": "伊豆諸島", "bounds": [[32.4, 138.9], [34.8, 140.2]]}, {"label": "小笠原諸島", "bounds": [[24.0, 141.9], [27.3, 142.3]]}]},
     {"code": "14", "name": "神奈川県", "region": "関東"},
-    {"code": "15", "name": "新潟県", "region": "中部", "islands": [{"label": "本土", "bounds": [[36.7, 137.6], [38.6, 139.9]]}, {"label": "佐渡・粟島", "bounds": [[37.7, 138.1], [38.6, 139.3]]}]},
+    {"code": "15", "name": "新潟県", "region": "中部", "defaultView": [[36.7, 137.6], [38.6, 139.9]], "islands": [{"label": "全域", "bounds": [[36.7, 137.6], [38.6, 139.9]]}, {"label": "本土", "bounds": [[36.7, 137.6], [38.6, 139.9]]}, {"label": "佐渡・粟島", "bounds": [[37.7, 138.1], [38.6, 139.3]]}]},
     {"code": "16", "name": "富山県", "region": "中部"},
     {"code": "17", "name": "石川県", "region": "中部"},
     {"code": "18", "name": "福井県", "region": "中部"},
@@ -61,7 +61,7 @@ PREFECTURES = [
     {"code": "29", "name": "奈良県", "region": "近畿"},
     {"code": "30", "name": "和歌山県", "region": "近畿"},
     {"code": "31", "name": "鳥取県", "region": "中国"},
-    {"code": "32", "name": "島根県", "region": "中国", "islands": [{"label": "本土", "bounds": [[34.3, 131.6], [35.6, 133.4]]}, {"label": "隠岐諸島", "bounds": [[35.9, 132.9], [36.4, 133.4]]}]},
+    {"code": "32", "name": "島根県", "region": "中国", "defaultView": [[34.3, 131.6], [35.6, 133.4]], "islands": [{"label": "全域", "bounds": [[34.3, 131.6], [36.4, 133.4]]}, {"label": "本土", "bounds": [[34.3, 131.6], [35.6, 133.4]]}, {"label": "隠岐諸島", "bounds": [[35.9, 132.9], [36.4, 133.4]]}]},
     {"code": "33", "name": "岡山県", "region": "中国"},
     {"code": "34", "name": "広島県", "region": "中国"},
     {"code": "35", "name": "山口県", "region": "中国"},
@@ -71,12 +71,12 @@ PREFECTURES = [
     {"code": "39", "name": "高知県", "region": "四国"},
     {"code": "40", "name": "福岡県", "region": "九州・沖縄"},
     {"code": "41", "name": "佐賀県", "region": "九州・沖縄"},
-    {"code": "42", "name": "長崎県", "region": "九州・沖縄", "islands": [{"label": "本土", "bounds": [[32.5, 129.7], [33.4, 130.4]]}, {"label": "離島(壱岐・対馬・五島)", "bounds": [[32.5, 128.5], [34.7, 129.8]]}]},
+    {"code": "42", "name": "長崎県", "region": "九州・沖縄", "defaultView": [[32.5, 129.7], [33.4, 130.4]], "islands": [{"label": "全域", "bounds": [[32.5, 128.5], [34.7, 130.4]]}, {"label": "本土", "bounds": [[32.5, 129.7], [33.4, 130.4]]}, {"label": "対馬", "bounds": [[34.0, 129.1], [34.7, 129.5]]}, {"label": "壱岐", "bounds": [[33.7, 129.6], [33.9, 129.8]]}, {"label": "五島列島", "bounds": [[32.5, 128.5], [33.1, 129.2]]}]},
     {"code": "43", "name": "熊本県", "region": "九州・沖縄"},
     {"code": "44", "name": "大分県", "region": "九州・沖縄"},
     {"code": "45", "name": "宮崎県", "region": "九州・沖縄"},
-    {"code": "46", "name": "鹿児島県", "region": "九州・沖縄", "islands": [{"label": "本土", "bounds": [[30.9, 130.0], [32.3, 131.2]]}, {"label": "奄美・諸島", "bounds": [[27.0, 128.3], [30.8, 131.1]]}]},
-    {"code": "47", "name": "沖縄県", "region": "九州・沖縄", "islands": [{"label": "沖縄本島", "bounds": [[26.0, 127.5], [26.9, 128.4]]}, {"label": "先島・離島", "bounds": [[24.0, 122.9], [26.0, 125.5]]}]}
+    {"code": "46", "name": "鹿児島県", "region": "九州・沖縄", "defaultView": [[30.9, 130.0], [32.3, 131.2]], "islands": [{"label": "全域", "bounds": [[27.0, 128.3], [32.3, 131.2]]}, {"label": "本土", "bounds": [[30.9, 130.0], [32.3, 131.2]]}, {"label": "奄美群島", "bounds": [[27.0, 128.3], [28.6, 130.1]]}, {"label": "種子島・屋久島", "bounds": [[30.1, 130.3], [30.9, 131.1]]}]},
+    {"code": "47", "name": "沖縄県", "region": "九州・沖縄", "defaultView": [[26.0, 127.5], [26.9, 128.4]], "islands": [{"label": "全域", "bounds": [[24.0, 122.9], [27.1, 128.4]]}, {"label": "沖縄本島", "bounds": [[26.0, 127.5], [26.9, 128.4]]}, {"label": "宮古・八重山", "bounds": [[24.0, 122.9], [25.0, 125.5]]}]}
 ]
 
 muni_json_str = json.dumps(muni_arr, ensure_ascii=False, separators=(',', ':'))
@@ -340,12 +340,6 @@ html_template = f'''<!DOCTYPE html>
         <div class="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
         <div class="text-sm font-semibold text-slate-200">ベクターポリゴン(GeoJSON)を取得中...</div>
         <div id="loading-fallback-msg" class="text-xs text-slate-400 max-w-xs text-center"></div>
-      </div>
-
-      <!-- セルフバリデーション警告バナー (問題発生時のみ表示) -->
-      <div id="validation-alert-banner" class="absolute top-2 left-2 z-20 max-w-md bg-amber-900/90 border border-amber-600 text-amber-100 text-xs px-3 py-2 rounded-lg shadow-lg hidden">
-        <span class="font-bold">⚠️ セルフバリデーション通知:</span>
-        <span id="validation-alert-text">データ不整合が検出されました</span>
       </div>
 
       <!-- トースト通知 (対象外自治体タップ時の案内) -->
@@ -861,7 +855,10 @@ html_template = f'''<!DOCTYPE html>
         btn.innerHTML = `📍 ${{island.label}}`;
         btn.onclick = () => {{
           if (state.map) {{
-            state.map.fitBounds(island.bounds, {{
+            const targetBounds = (island.label === '全域' && state.geoJsonLayer)
+              ? state.geoJsonLayer.getBounds()
+              : L.latLngBounds(island.bounds);
+            state.map.fitBounds(targetBounds, {{
               paddingTopLeft: [20, 20],
               paddingBottomRight: [20, window.innerWidth < 640 ? 190 : 140],
               maxZoom: 11
@@ -978,12 +975,8 @@ html_template = f'''<!DOCTYPE html>
       initStage();
     }}
 
-    // セルフバリデーション機構
+    // セルフバリデーション機構 (コンソール健全性チェック)
     function runSelfValidation(prefCode, geoData) {{
-      const alertBanner = document.getElementById('validation-alert-banner');
-      const alertText = document.getElementById('validation-alert-text');
-      alertBanner.classList.add('hidden');
-
       const missingInMaster = [];
       const geoCityCodes = new Set();
 
@@ -1000,14 +993,11 @@ html_template = f'''<!DOCTYPE html>
       const defMunis = PREF_MUNICIPALITIES[prefCode] || [];
       const missingInGeo = defMunis.filter(m => !geoCityCodes.has(m.c));
 
-      if (missingInMaster.length > 0 || missingInGeo.length > 0) {{
-        console.warn(`[GeoAnki Self-Validation Alert] 都道府県 ${{prefCode}}:`, {{
+      if (missingInGeo.length > 0) {{
+        console.warn(`[GeoAnki Self-Validation Alert] 都道府県 ${{prefCode}}: GeoJSON側欠損 ${{missingInGeo.length}}件`, {{
           missingInMaster,
           missingInGeo
         }});
-        alertText.textContent = `GeoJSONコード突き合わせ: 欠損${{missingInGeo.length}}件 (フォールバック適用中)`;
-        alertBanner.classList.remove('hidden');
-        setTimeout(() => alertBanner.classList.add('hidden'), 5000);
       }} else {{
         console.log(`[GeoAnki Self-Validation Passed] 都道府県 ${{prefCode}}: 全${{defMunis.length}}自治体が完全整合`);
       }}
@@ -1053,15 +1043,15 @@ html_template = f'''<!DOCTYPE html>
       const dash = isWard ? '3, 4' : null;
       const baseWeight = isWard ? 1.0 : 1.8;
 
-      // 出題対象外の自治体: 暗めのスレートグレーアウト
+      // 出題対象外の自治体: 海と明瞭に区別できるスレートグレー
       if (!isTarget) {{
         return {{
-          fillColor: '#1e293b',
-          fillOpacity: 0.35,
-          color: isWard ? '#475569' : '#334155',
-          weight: isWard ? 0.7 : 1.0,
+          fillColor: '#334155',
+          fillOpacity: 0.70,
+          color: isWard ? '#64748b' : '#475569',
+          weight: isWard ? 0.9 : 1.3,
           dashArray: dash,
-          opacity: 0.5
+          opacity: 0.85
         }};
       }}
 
@@ -1095,9 +1085,9 @@ html_template = f'''<!DOCTYPE html>
       if (!isTarget) {{
         return {{
           fill: false,
-          color: '#334155',
-          weight: 1.6,
-          opacity: 0.6
+          color: '#64748b',
+          weight: 1.8,
+          opacity: 0.85
         }};
       }}
       const rec = Store.getRecord(code);
@@ -1178,8 +1168,12 @@ html_template = f'''<!DOCTYPE html>
         }}
       }});
 
-      // 初回表示フィット
-      fitMapToBounds(state.geoJsonLayer.getBounds());
+      // 初回表示フィット（本土・本島の defaultView があれば優先）
+      if (state.selectedPref && state.selectedPref.defaultView) {{
+        fitMapToBounds(L.latLngBounds(state.selectedPref.defaultView));
+      }} else {{
+        fitMapToBounds(state.geoJsonLayer.getBounds());
+      }}
     }}
 
     // ポリゴンハイライト制御
@@ -1421,9 +1415,11 @@ html_template = f'''<!DOCTYPE html>
         focusCurrentMunicipality();
       }};
 
-      // 県全体表示ボタン
+      // 本土・全体再表示ボタン
       document.getElementById('btn-reset-bounds').onclick = () => {{
-        if (state.geoJsonLayer) {{
+        if (state.selectedPref && state.selectedPref.defaultView) {{
+          fitMapToBounds(L.latLngBounds(state.selectedPref.defaultView));
+        }} else if (state.geoJsonLayer) {{
           fitMapToBounds(state.geoJsonLayer.getBounds());
         }}
       }};
@@ -1546,6 +1542,19 @@ html_template = f'''<!DOCTYPE html>
 
         // 4択ボタンの生成
         generateChoices(q);
+      }}
+
+      // 出題自治体が現在の地図表示範囲外にある場合、自動で該当エリアへスムーズズーム
+      if (state.map && state.cityLayerMap[q.c] && state.cityLayerMap[q.c].length > 0) {{
+        const qGroup = L.featureGroup(state.cityLayerMap[q.c]);
+        const qCenter = qGroup.getBounds().getCenter();
+        if (!state.map.getBounds().contains(qCenter)) {{
+          state.map.flyToBounds(qGroup.getBounds(), {{
+            padding: [60, 60],
+            maxZoom: 11,
+            duration: 0.8
+          }});
+        }}
       }}
     }}
 
