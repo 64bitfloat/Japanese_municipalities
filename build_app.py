@@ -1382,7 +1382,16 @@ html_template = f'''<!DOCTYPE html>
     document.addEventListener('DOMContentLoaded', () => {{
       document.querySelectorAll('.level-tab-btn').forEach(btn => {{
         btn.addEventListener('click', () => {{
-          state.selectedLevel = btn.dataset.level;
+          const lvl = btn.dataset.level;
+          if (lvl === 'WEAK') {{
+            const weak = Store.getWeakList(state.selectedPref.code);
+            if (weak.length === 0) {{
+              showToast('弱点復習リストの自治体は現在ありません！すべて克服しました。');
+              setupLevelTabs();
+              return;
+            }}
+          }}
+          state.selectedLevel = lvl;
           updateLevelTabStyles();
           initStage();
         }});
@@ -1495,8 +1504,9 @@ html_template = f'''<!DOCTYPE html>
     function loadQuestion() {{
       if (state.activeQuestionList.length === 0) {{
         if (state.selectedLevel === 'WEAK') {{
-          alert('弱点復習リストの自治体は現在ありません！すべて克服しました。');
+          showToast('弱点復習リストの自治体は現在ありません！すべて克服しました。');
           state.selectedLevel = 'ALL';
+          setupLevelTabs();
           updateLevelTabStyles();
           initStage();
         }} else {{
@@ -1510,6 +1520,9 @@ html_template = f'''<!DOCTYPE html>
         sound.playCorrect();
         alert(`🎉 ステージクリア！ 全${{state.activeQuestionList.length}}問の学習を達成しました！`);
         updateSpokeHeaderProgress();
+        if (state.selectedLevel === 'WEAK') {{
+          state.selectedLevel = 'ALL';
+        }}
         setupLevelTabs();
         initStage();
         return;
@@ -1615,6 +1628,7 @@ html_template = f'''<!DOCTYPE html>
       const isCorrect = selectedCode === state.currentQuestion.c;
       Store.recordAnswer(state.currentQuestion.c, isCorrect);
       updateSpokeHeaderProgress();
+      setupLevelTabs();
 
       const allBtns = document.querySelectorAll('.choice-btn');
 
@@ -1675,6 +1689,7 @@ html_template = f'''<!DOCTYPE html>
 
       Store.recordAnswer(targetMuni.c, isCorrect);
       updateSpokeHeaderProgress();
+      setupLevelTabs();
 
       const feedbackBar = document.getElementById('locate-feedback-bar');
       const feedbackContent = document.getElementById('locate-feedback-content');
