@@ -124,6 +124,9 @@ html_template = f'''<!DOCTYPE html>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
+  <!-- Turf.js (政令指定都市の外郭ポリゴン自動結合) -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
   <style>
     /* モバイルでの誤タッチ・ダブルタップズーム防止 */
     html, body, button, .no-dbltap {{
@@ -348,6 +351,12 @@ html_template = f'''<!DOCTYPE html>
       <!-- トースト通知 (対象外自治体タップ時の案内) -->
       <div id="map-toast" class="absolute top-14 left-1/2 -translate-x-1/2 z-30 max-w-md bg-slate-900/95 border border-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur transition-all duration-300 opacity-0 pointer-events-none translate-y-2 text-center">
         <span id="map-toast-text">通知メッセージ</span>
+      </div>
+
+      <!-- 境界線の凡例 (実線＝市境, 点線＝区境) -->
+      <div class="absolute bottom-3 left-3 z-10 hidden sm:flex items-center gap-3 bg-slate-900/85 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700/70 text-[11px] text-slate-300 pointer-events-none shadow-md">
+        <span class="flex items-center gap-1.5"><span class="w-4 h-0.5 bg-slate-300 inline-block rounded"></span> 市区町村境</span>
+        <span class="flex items-center gap-1.5"><span class="w-4 border-t border-dashed border-slate-400 inline-block"></span> 行政区境</span>
       </div>
 
       <!-- ========================================== -->
@@ -665,6 +674,7 @@ html_template = f'''<!DOCTYPE html>
       map: null,
       geoJsonLayer: null,
       cityLayerMap: {{}}, // code -> [Leaflet layer]
+      cityBorderLayers: {{}}, // parentCityCode -> outer border Leaflet layer
       isAnswering: false,
       feedbackTimer: null,
       loadedGeoJsonCache: {{}} // prefCode -> geojson
@@ -918,6 +928,10 @@ html_template = f'''<!DOCTYPE html>
         state.map.removeLayer(state.geoJsonLayer);
         state.geoJsonLayer = null;
       }}
+      if (state.cityBorderLayers) {{
+        Object.values(state.cityBorderLayers).forEach(l => state.map.removeLayer(l));
+      }}
+      state.cityBorderLayers = {{}};
       state.cityLayerMap = {{}};
 
       let geoData = state.loadedGeoJsonCache[prefCode];
@@ -998,7 +1012,7 @@ html_template = f'''<!DOCTYPE html>
     }}
 
     /* ========================================================
-       難易度Level判定 & 動的ポリゴンスタイリング（グレーアウト対応）
+       難易度Level判定 & 動的ポリゴンスタイリング（市境 vs 区境の分離）
        ======================================================== */
     function isMuniTargetInCurrentStage(code) {{
       const muni = MUNICIPALITIES[code];
@@ -1016,16 +1030,35 @@ html_template = f'''<!DOCTYPE html>
       return muni.lvl === parseInt(state.selectedLevel, 10);
     }}
 
-    function getCityNormalStyle(code) {{
-      const isTarget = isMuniTargetInCurrentStage(code);
+    // Turf.js を利用した政令市の行政区結合
+    function mergeFeaturesForCity(features) {{
+      if (!window.turf || !features || features.length === 0) return null;
+      if (features.length === 1) return features[0];
+      try {{
+        let merged = features[0];
+        for (let i = 1; i < features.length; i++) {{
+          merged = turf.union(merged, features[i]);
+        }}
+        return merged;
+      }} catch (err) {{
+        console.warn('[Turf Union] Fallback:', err);
+        return null;
+      }}
+    }}
 
-      // 出題対象外の自治体: 暗めのスレートグレーアウトで自然に背景へ溶け込ませる
+    function getCityNormalStyle(code, isWard) {{
+      const isTarget = isMuniTargetInCurrentStage(code);
+      const dash = isWard ? '3, 4' : null;
+      const baseWeight = isWard ? 1.0 : 1.8;
+
+      // 出題対象外の自治体: 暗めのスレートグレーアウト
       if (!isTarget) {{
         return {{
           fillColor: '#1e293b',
           fillOpacity: 0.35,
-          color: '#334155',
-          weight: 0.8,
+          color: isWard ? '#475569' : '#334155',
+          weight: isWard ? 0.7 : 1.0,
+          dashArray: dash,
           opacity: 0.5
         }};
       }}
@@ -1036,33 +1069,67 @@ html_template = f'''<!DOCTYPE html>
         return {{
           fillColor: '#ecfdf5',
           fillOpacity: 0.92,
-          color: '#34d399',
-          weight: 1.5,
+          color: isWard ? '#a7f3d0' : '#34d399',
+          weight: baseWeight,
+          dashArray: dash,
           opacity: 1
         }};
       }}
 
-      // 出題対象自治体: 未クリア（クリアな白〜極薄グレーで浮き上がらせる）
+      // 出題対象自治体: 未クリア（クリアな白〜極薄グレー）
       return {{
         fillColor: '#f8fafc',
         fillOpacity: 0.95,
-        color: '#64748b',
-        weight: 1.5,
+        color: isWard ? '#94a3b8' : '#64748b',
+        weight: baseWeight,
+        dashArray: dash,
         opacity: 1
       }};
     }}
 
-    // 地図ポリゴン描画
+    // 政令指定都市の「太い外周枠線（市境）」スタイル
+    function getCityOuterBorderStyle(code) {{
+      const isTarget = isMuniTargetInCurrentStage(code);
+      if (!isTarget) {{
+        return {{
+          fill: false,
+          color: '#334155',
+          weight: 1.6,
+          opacity: 0.6
+        }};
+      }}
+      const rec = Store.getRecord(code);
+      if (rec && rec.correct > 0) {{
+        return {{
+          fill: false,
+          color: '#059669',
+          weight: 2.4,
+          opacity: 1
+        }};
+      }}
+      return {{
+        fill: false,
+        color: '#475569',
+        weight: 2.2,
+        opacity: 1
+      }};
+    }}
+
+    // 地図ポリゴン描画（2層レイヤー構造: 下層=行政区破線 / 上層=政令市外郭実線）
     function renderGeoJsonLayer(geoData) {{
       state.geoJsonLayer = L.geoJSON(geoData, {{
         style: (feature) => {{
           const rawCode = feature.properties.N03_007;
           const code = WARD_TO_CITY[rawCode] || rawCode;
-          return getCityNormalStyle(code);
+          const isWard = !!WARD_TO_CITY[rawCode];
+          return getCityNormalStyle(code, isWard);
         }},
         onEachFeature: (feature, layer) => {{
           const rawCode = feature.properties.N03_007;
           const code = WARD_TO_CITY[rawCode] || rawCode;
+          const isWard = !!WARD_TO_CITY[rawCode];
+          layer._isWard = isWard;
+          layer._cityCode = code;
 
           if (!state.cityLayerMap[code]) {{
             state.cityLayerMap[code] = [];
@@ -1087,6 +1154,28 @@ html_template = f'''<!DOCTYPE html>
         }}
       }}).addTo(state.map);
 
+      // 政令指定都市の全区ポリゴンをマージして親市の外郭（太い実線市境）を上層オーバーレイ
+      const designatedCityFeatures = {{}};
+      (geoData.features || []).forEach(f => {{
+        const rawCode = f.properties.N03_007;
+        const parentCity = WARD_TO_CITY[rawCode];
+        if (parentCity) {{
+          if (!designatedCityFeatures[parentCity]) designatedCityFeatures[parentCity] = [];
+          designatedCityFeatures[parentCity].push(f);
+        }}
+      }});
+
+      Object.entries(designatedCityFeatures).forEach(([cityCode, featList]) => {{
+        const merged = mergeFeaturesForCity(featList);
+        if (merged) {{
+          const outerLayer = L.geoJSON(merged, {{
+            style: () => getCityOuterBorderStyle(cityCode),
+            interactive: false
+          }}).addTo(state.map);
+          state.cityBorderLayers[cityCode] = outerLayer;
+        }}
+      }});
+
       // 初回表示フィット
       fitMapToBounds(state.geoJsonLayer.getBounds());
     }}
@@ -1099,45 +1188,78 @@ html_template = f'''<!DOCTYPE html>
     }}
 
     function highlightCity(code, mode) {{
-      if (mode === 'question') {{
-        // 出題中: 明瞭なイエロー
-        setCityStyle(code, {{
-          fillColor: '#fde047',
-          fillOpacity: 0.95,
-          color: '#ca8a04',
-          weight: 3.2,
-          opacity: 1
-        }});
-      }} else if (mode === 'correct') {{
-        // 正解: エメラルドグリーン
-        setCityStyle(code, {{
-          fillColor: '#34d399',
-          fillOpacity: 0.95,
-          color: '#059669',
-          weight: 2.8,
-          opacity: 1
-        }});
-      }} else if (mode === 'wrong') {{
-        // 不正解: ソフトレッド
-        setCityStyle(code, {{
-          fillColor: '#f87171',
-          fillOpacity: 0.95,
-          color: '#dc2626',
-          weight: 2.8,
-          opacity: 1
-        }});
-      }} else if (mode === 'hover') {{
-        if (state.currentQuestion && state.currentQuestion.c === code) return;
-        setCityStyle(code, {{
-          fillColor: '#e2e8f0',
-          weight: 2,
-          opacity: 1
-        }});
+      const layers = state.cityLayerMap[code];
+      if (!layers) return;
+
+      layers.forEach(l => {{
+        const isWard = l._isWard;
+        const dash = isWard ? '3, 4' : null;
+
+        if (mode === 'question') {{
+          l.setStyle({{
+            fillColor: '#fde047',
+            fillOpacity: 0.95,
+            color: '#ca8a04',
+            weight: isWard ? 1.4 : 3.2,
+            dashArray: dash,
+            opacity: 1
+          }});
+        }} else if (mode === 'correct') {{
+          l.setStyle({{
+            fillColor: '#34d399',
+            fillOpacity: 0.95,
+            color: '#059669',
+            weight: isWard ? 1.4 : 2.8,
+            dashArray: dash,
+            opacity: 1
+          }});
+        }} else if (mode === 'wrong') {{
+          l.setStyle({{
+            fillColor: '#f87171',
+            fillOpacity: 0.95,
+            color: '#dc2626',
+            weight: isWard ? 1.4 : 2.8,
+            dashArray: dash,
+            opacity: 1
+          }});
+        }} else if (mode === 'hover') {{
+          if (state.currentQuestion && state.currentQuestion.c === code) return;
+          l.setStyle({{
+            fillColor: '#e2e8f0',
+            weight: isWard ? 1.2 : 2.2,
+            dashArray: dash,
+            opacity: 1
+          }});
+        }}
+      }});
+
+      // 親市外郭レイヤー（太い実線市境）も連動ハイライト
+      const borderLayer = state.cityBorderLayers[code];
+      if (borderLayer) {{
+        if (mode === 'question') {{
+          borderLayer.setStyle({{ color: '#ca8a04', weight: 3.8, opacity: 1 }});
+        }} else if (mode === 'correct') {{
+          borderLayer.setStyle({{ color: '#059669', weight: 3.0, opacity: 1 }});
+        }} else if (mode === 'wrong') {{
+          borderLayer.setStyle({{ color: '#dc2626', weight: 3.0, opacity: 1 }});
+        }} else if (mode === 'hover') {{
+          if (state.currentQuestion && state.currentQuestion.c === code) return;
+          borderLayer.setStyle({{ color: '#94a3b8', weight: 2.6, opacity: 1 }});
+        }}
       }}
     }}
 
     function resetCityHighlight(code) {{
-      setCityStyle(code, getCityNormalStyle(code));
+      const layers = state.cityLayerMap[code];
+      if (layers) {{
+        layers.forEach(l => {{
+          l.setStyle(getCityNormalStyle(code, l._isWard));
+        }});
+      }}
+      const borderLayer = state.cityBorderLayers[code];
+      if (borderLayer) {{
+        borderLayer.setStyle(getCityOuterBorderStyle(code));
+      }}
     }}
 
     function refreshAllCityStyles() {{
