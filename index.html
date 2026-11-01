@@ -47,9 +47,12 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic UI", sans-serif;
     }
-    /* Leafletタイルのトーン調整 */
-    .leaflet-tile-pane {
-      filter: brightness(0.97) contrast(1.05);
+    /* 地図コンテナの背景色（ウォーターマークのない清潔な海色） */
+    #map {
+      background: #090d16 !important;
+    }
+    .leaflet-container {
+      background: #090d16 !important;
     }
     /* 地図上のポリゴンパルスアニメーション */
     @keyframes pulse-yellow {
@@ -255,6 +258,11 @@
       <div id="validation-alert-banner" class="absolute top-2 left-2 z-20 max-w-md bg-amber-900/90 border border-amber-600 text-amber-100 text-xs px-3 py-2 rounded-lg shadow-lg hidden">
         <span class="font-bold">⚠️ セルフバリデーション通知:</span>
         <span id="validation-alert-text">データ不整合が検出されました</span>
+      </div>
+
+      <!-- トースト通知 (対象外自治体タップ時の案内) -->
+      <div id="map-toast" class="absolute top-14 left-1/2 -translate-x-1/2 z-30 max-w-md bg-slate-900/95 border border-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur transition-all duration-300 opacity-0 pointer-events-none translate-y-2 text-center">
+        <span id="map-toast-text">通知メッセージ</span>
       </div>
 
       <!-- ========================================== -->
@@ -776,22 +784,16 @@
       }
 
       // Leaflet 地図インスタンス初期化
+      // 外部タイルサーバーを使わない完全無地ベクターマップ（ウォーターマークなし）
       state.map = L.map('map', {
         zoomControl: false,
         attributionControl: false,
-        minZoom: 5,
+        minZoom: 4,
         maxZoom: 16
       }).setView([36.5, 138.0], 7);
 
       // ズームコントロールを右上に配置
       L.control.zoom({ position: 'topright' }).addTo(state.map);
-
-      // CARTO Positron（ラベルなし）背景タイル
-      // 地名ネタバレがなく、清潔な白〜極薄グレースタイル
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-        subdomains: 'abcd',
-        maxZoom: 19
-      }).addTo(state.map);
 
       // 画面リサイズ・回転時の自動再センタリング
       let resizeTimer = null;
@@ -910,31 +912,68 @@
       }
     }
 
-    // 地図ポリゴン描画
-    function renderGeoJsonLayer(geoData) {
-      const defaultStyle = {
+    /* ========================================================
+       難易度Level判定 & 動的ポリゴンスタイリング（グレーアウト対応）
+       ======================================================== */
+    function isMuniTargetInCurrentStage(code) {
+      const muni = MUNICIPALITIES[code];
+      if (!muni) return false;
+      // 探索モードまたは「全自治体」タブの場合は全自治体が対象
+      if (state.currentMode === 'explore' || state.selectedLevel === 'ALL') {
+        return true;
+      }
+      // 弱点復習タブの場合
+      if (state.selectedLevel === 'WEAK') {
+        const rec = Store.getRecord(code);
+        return rec && rec.wrong > 0 && rec.last === 'wrong';
+      }
+      // Level 1〜4の場合
+      return muni.lvl === parseInt(state.selectedLevel, 10);
+    }
+
+    function getCityNormalStyle(code) {
+      const isTarget = isMuniTargetInCurrentStage(code);
+
+      // 出題対象外の自治体: 暗めのスレートグレーアウトで自然に背景へ溶け込ませる
+      if (!isTarget) {
+        return {
+          fillColor: '#1e293b',
+          fillOpacity: 0.35,
+          color: '#334155',
+          weight: 0.8,
+          opacity: 0.5
+        };
+      }
+
+      // 出題対象自治体: 過去にクリア済み
+      const rec = Store.getRecord(code);
+      if (rec && rec.correct > 0) {
+        return {
+          fillColor: '#ecfdf5',
+          fillOpacity: 0.92,
+          color: '#34d399',
+          weight: 1.5,
+          opacity: 1
+        };
+      }
+
+      // 出題対象自治体: 未クリア（クリアな白〜極薄グレーで浮き上がらせる）
+      return {
         fillColor: '#f8fafc',
-        fillOpacity: 0.88,
-        color: '#94a3b8',
-        weight: 1.2,
+        fillOpacity: 0.95,
+        color: '#64748b',
+        weight: 1.5,
         opacity: 1
       };
+    }
 
+    // 地図ポリゴン描画
+    function renderGeoJsonLayer(geoData) {
       state.geoJsonLayer = L.geoJSON(geoData, {
         style: (feature) => {
           const rawCode = feature.properties.N03_007;
           const code = WARD_TO_CITY[rawCode] || rawCode;
-          const rec = Store.getRecord(code);
-          if (rec && rec.correct > 0) {
-            // 正解履歴あり: 清潔な薄エメラルド
-            return {
-              fillColor: '#ecfdf5',
-              fillOpacity: 0.9,
-              color: '#6ee7b7',
-              weight: 1.3
-            };
-          }
-          return defaultStyle;
+          return getCityNormalStyle(code);
         },
         onEachFeature: (feature, layer) => {
           const rawCode = feature.properties.N03_007;
@@ -948,14 +987,12 @@
           // ホバー・クリックイベント
           layer.on({
             mouseover: () => {
-              if (state.currentMode === 'explore' || state.currentMode === 'locate') {
+              if (isMuniTargetInCurrentStage(code) || state.currentMode === 'explore') {
                 highlightCity(code, 'hover');
               }
             },
             mouseout: () => {
-              if (state.currentMode === 'explore' || state.currentMode === 'locate') {
-                resetCityHighlight(code);
-              }
+              resetCityHighlight(code);
             },
             click: (e) => {
               L.DomEvent.stopPropagation(e);
@@ -983,7 +1020,8 @@
           fillColor: '#fde047',
           fillOpacity: 0.95,
           color: '#ca8a04',
-          weight: 3.2
+          weight: 3.2,
+          opacity: 1
         });
       } else if (mode === 'correct') {
         // 正解: エメラルドグリーン
@@ -991,7 +1029,8 @@
           fillColor: '#34d399',
           fillOpacity: 0.95,
           color: '#059669',
-          weight: 2.8
+          weight: 2.8,
+          opacity: 1
         });
       } else if (mode === 'wrong') {
         // 不正解: ソフトレッド
@@ -999,34 +1038,44 @@
           fillColor: '#f87171',
           fillOpacity: 0.95,
           color: '#dc2626',
-          weight: 2.8
+          weight: 2.8,
+          opacity: 1
         });
       } else if (mode === 'hover') {
         if (state.currentQuestion && state.currentQuestion.c === code) return;
         setCityStyle(code, {
           fillColor: '#e2e8f0',
-          weight: 2
+          weight: 2,
+          opacity: 1
         });
       }
     }
 
     function resetCityHighlight(code) {
-      const rec = Store.getRecord(code);
-      if (rec && rec.correct > 0) {
-        setCityStyle(code, {
-          fillColor: '#ecfdf5',
-          fillOpacity: 0.9,
-          color: '#6ee7b7',
-          weight: 1.3
-        });
-      } else {
-        setCityStyle(code, {
-          fillColor: '#f8fafc',
-          fillOpacity: 0.88,
-          color: '#94a3b8',
-          weight: 1.2
-        });
-      }
+      setCityStyle(code, getCityNormalStyle(code));
+    }
+
+    function refreshAllCityStyles() {
+      if (!state.geoJsonLayer) return;
+      Object.keys(state.cityLayerMap).forEach(code => {
+        resetCityHighlight(code);
+      });
+    }
+
+    // 親切なトースト通知
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('map-toast');
+      const text = document.getElementById('map-toast-text');
+      if (!toast || !text) return;
+      text.textContent = msg;
+      toast.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+      }, 2600);
     }
 
     /* ========================================================
@@ -1192,10 +1241,8 @@
       state.currentIndex = 0;
       state.isAnswering = false;
 
-      // 全ポリゴンのハイライトを一旦通常に戻す
-      if (state.geoJsonLayer) {
-        state.geoJsonLayer.resetStyle();
-      }
+      // 現在のLevelに応じて全ポリゴンのスタイル（対象/グレーアウト）を同期
+      refreshAllCityStyles();
 
       if (state.currentMode === 'explore') {
         // エクスプローラーモード: クイズなし
@@ -1280,14 +1327,14 @@
       const prefCode = state.selectedPref.code;
       const allMunis = PREF_MUNICIPALITIES[prefCode] || [];
 
-      // ダミー選択肢（同Level優先で抽出）
-      let candidates = allMunis.filter(m => m.c !== targetMuni.c && m.lvl === targetMuni.lvl);
-      if (candidates.length < 3) {
-        candidates = allMunis.filter(m => m.c !== targetMuni.c);
+      // ダミー選択肢（現在のステージ対象自治体から優先抽出）
+      let targetCandidates = state.activeQuestionList.filter(m => m.c !== targetMuni.c);
+      if (targetCandidates.length < 3) {
+        targetCandidates = allMunis.filter(m => m.c !== targetMuni.c);
       }
 
-      candidates.sort(() => Math.random() - 0.5);
-      const dummies = candidates.slice(0, 3);
+      targetCandidates.sort(() => Math.random() - 0.5);
+      const dummies = targetCandidates.slice(0, 3);
 
       const choices = [targetMuni, ...dummies].sort(() => Math.random() - 0.5);
       state.currentChoices = choices;
@@ -1349,6 +1396,16 @@
       if (state.currentMode === 'explore') {
         // 探索モード: 詳細情報表示
         showExploreDetails(clickedCode);
+        return;
+      }
+
+      // 出題対象外の自治体をタップしたときの救済通知
+      if (!isMuniTargetInCurrentStage(clickedCode)) {
+        const clickedMuni = MUNICIPALITIES[clickedCode];
+        const name = clickedMuni ? clickedMuni.n : 'この地域';
+        const lvl = clickedMuni ? clickedMuni.lvl : '';
+        const type = clickedMuni ? (TYPE_LABELS[clickedMuni.t] || '市町村') : '';
+        showToast(`『${name}』は Level ${lvl}（${type}）です（現在のLevelでは出題対象外）`);
         return;
       }
 
