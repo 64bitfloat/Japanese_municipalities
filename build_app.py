@@ -1013,10 +1013,18 @@ html_template = f'''<!DOCTYPE html>
       if (state.currentMode === 'explore' || state.selectedLevel === 'ALL') {{
         return true;
       }}
-      // 弱点復習タブの場合
+      // 弱点復習タブの場合: 現在出題中の自治体の難易度（Level）と同じ出題範囲を白く表示
       if (state.selectedLevel === 'WEAK') {{
-        const rec = Store.getRecord(code);
-        return rec && rec.wrong > 0 && rec.last === 'wrong';
+        let targetLvl = null;
+        if (state.currentQuestion) {{
+          targetLvl = state.currentQuestion.lvl;
+        }} else if (state.activeQuestionList && state.activeQuestionList.length > 0) {{
+          targetLvl = state.activeQuestionList[0].lvl;
+        }}
+        if (targetLvl !== null) {{
+          return muni.lvl === targetLvl;
+        }}
+        return true;
       }}
       // Level 1〜4の場合
       return muni.lvl === parseInt(state.selectedLevel, 10);
@@ -1055,9 +1063,12 @@ html_template = f'''<!DOCTYPE html>
         }};
       }}
 
+      // 全自治体・弱点復習時はクリア済みでも緑色にせず同色（白）に統一
+      const shouldHighlightCleared = (state.selectedLevel !== 'ALL' && state.selectedLevel !== 'WEAK');
+
       // 出題対象自治体: 過去にクリア済み
       const rec = Store.getRecord(code);
-      if (rec && rec.correct > 0) {{
+      if (shouldHighlightCleared && rec && rec.correct > 0) {{
         return {{
           fillColor: '#ecfdf5',
           fillOpacity: 0.92,
@@ -1090,8 +1101,9 @@ html_template = f'''<!DOCTYPE html>
           opacity: 0.85
         }};
       }}
+      const shouldHighlightCleared = (state.selectedLevel !== 'ALL' && state.selectedLevel !== 'WEAK');
       const rec = Store.getRecord(code);
-      if (rec && rec.correct > 0) {{
+      if (shouldHighlightCleared && rec && rec.correct > 0) {{
         return {{
           fill: false,
           color: '#059669',
@@ -1511,6 +1523,11 @@ html_template = f'''<!DOCTYPE html>
       state.currentQuestion = state.activeQuestionList[state.currentIndex];
       state.isAnswering = false;
 
+      // 弱点復習タブの場合、出題自治体のLevelに応じて表示対象（白/グレーアウト）が切り替わるため全ポリゴンスタイルを同期
+      if (state.selectedLevel === 'WEAK') {{
+        refreshAllCityStyles();
+      }}
+
       const q = state.currentQuestion;
       const totalQ = state.activeQuestionList.length;
       const currentNum = state.currentIndex + 1;
@@ -1565,14 +1582,16 @@ html_template = f'''<!DOCTYPE html>
       const prefCode = state.selectedPref.code;
       const allMunis = PREF_MUNICIPALITIES[prefCode] || [];
 
-      // ダミー選択肢（現在のステージ対象自治体から優先抽出）
-      let targetCandidates = state.activeQuestionList.filter(m => m.c !== targetMuni.c);
-      if (targetCandidates.length < 3) {{
-        targetCandidates = allMunis.filter(m => m.c !== targetMuni.c);
-      }}
+      // ダミー選択肢: 出題対象と同じLevelの自治体から優先抽出（難易度条件の統一）
+      let sameLevelMunis = allMunis.filter(m => m.lvl === targetMuni.lvl && m.c !== targetMuni.c);
+      sameLevelMunis.sort(() => Math.random() - 0.5);
 
-      targetCandidates.sort(() => Math.random() - 0.5);
-      const dummies = targetCandidates.slice(0, 3);
+      let dummies = sameLevelMunis.slice(0, 3);
+      if (dummies.length < 3) {{
+        const others = allMunis.filter(m => m.c !== targetMuni.c && !dummies.some(d => d.c === m.c));
+        others.sort(() => Math.random() - 0.5);
+        dummies = [...dummies, ...others.slice(0, 3 - dummies.length)];
+      }}
 
       const choices = [targetMuni, ...dummies].sort(() => Math.random() - 0.5);
       state.currentChoices = choices;
