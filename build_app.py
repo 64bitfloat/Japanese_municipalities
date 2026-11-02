@@ -991,11 +991,11 @@ html_template = f'''<!DOCTYPE html>
     }}
 
     /* ========================================================
-       4択・記入モード用: 出題自治体の画面外チェック & 自動カメラ移動
-       （※場所当てモードでは答えが推測できてしまうため絶対に適用しない）
+       4択・記入モード用: 出題地域を画面中央に寄せる
+       （※場所当てモードでは答えが分かってしまうため絶対に適用しない）
        ======================================================== */
-    function ensureMunicipalityVisible(code) {{
-      if (!state.map || state.currentMode === 'locate') return;
+    function centerOnCurrentMunicipality(code) {{
+      if (!state.map || state.currentMode === 'locate' || state.currentMode === 'explore') return;
 
       const layers = state.cityLayerMap[code];
       let cityBounds = null;
@@ -1009,39 +1009,19 @@ html_template = f'''<!DOCTYPE html>
       }}
       if (!cityBounds || !cityBounds.isValid()) return;
 
-      const mapBounds = state.map.getBounds();
-      const cityCenter = cityBounds.getCenter();
+      const isMobile = window.innerWidth < 640;
 
-      // 現在の画面内（ビューポート）に自治体の中心が収まっているか確認
-      if (mapBounds.contains(cityCenter) && mapBounds.intersects(cityBounds)) {{
-        // すでに画面内に見えているので自動移動は不要
-        return;
-      }}
+      // 自治体の輪郭がはっきりと見え、周辺の地形も適度に確認できる余白（pad: 1.2）
+      const paddedBounds = cityBounds.pad(1.2);
 
-      // 画面外にある場合、適切なエリアまたは周辺へカメラを移動
-      const pref = state.selectedPref;
-      let targetBounds = null;
-
-      // 1. その県に islands（本土・離島エリアなど）が定義されている場合、その自治体を含むエリアを探索
-      if (pref && pref.islands && pref.islands.length > 0) {{
-        for (const island of pref.islands) {{
-          if (island.label === '全域') continue;
-          const islandBounds = L.latLngBounds(island.bounds);
-          if (islandBounds.contains(cityCenter)) {{
-            targetBounds = islandBounds;
-            break;
-          }}
-        }}
-      }}
-
-      // 2. マッチするアイランドエリアが見つかった場合はそのエリア全体へフィット
-      if (targetBounds) {{
-        fitMapToBounds(targetBounds);
-      }} else {{
-        // 3. 通常の県またはアイランド定義外の場合: 自治体周辺（適度なマージン）へカメラ移動（寄りすぎないよう maxZoom: 10）
-        const paddedBounds = cityBounds.pad(0.8);
-        fitMapToBounds(paddedBounds, 10);
-      }}
+      // 下部ドックに隠れない有効表示エリアの真ん中にアニメーション移動
+      state.map.fitBounds(paddedBounds, {{
+        paddingTopLeft: [isMobile ? 16 : 24, isMobile ? 16 : 24],
+        paddingBottomRight: [isMobile ? 16 : 24, isMobile ? 120 : 160],
+        maxZoom: 10.5,
+        animate: true,
+        duration: 0.5
+      }});
     }}
 
     /* ========================================================
@@ -1739,8 +1719,8 @@ html_template = f'''<!DOCTYPE html>
         document.getElementById('name-progress-tag').textContent = `問 ${{currentNum}} / ${{totalQ}}`;
         highlightCity(q.c, 'question');
 
-        // 4択問題: 画面外の場合は自動で適切なマップへ移動
-        ensureMunicipalityVisible(q.c);
+        // 4択問題: 出題地域を画面中央に寄せる
+        centerOnCurrentMunicipality(q.c);
 
         // 4択ボタンの生成
         generateChoices(q);
@@ -1749,8 +1729,8 @@ html_template = f'''<!DOCTYPE html>
         document.getElementById('type-progress-tag').textContent = `問 ${{currentNum}} / ${{totalQ}}`;
         highlightCity(q.c, 'question');
 
-        // 記入問題: 画面外の場合は自動で適切なマップへ移動
-        ensureMunicipalityVisible(q.c);
+        // 記入問題: 出題地域を画面中央に寄せる
+        centerOnCurrentMunicipality(q.c);
 
         const input = document.getElementById('input-type-answer');
         input.value = '';
