@@ -80,6 +80,11 @@
     .leaflet-container {
       background: #090d16 !important;
     }
+    /* SVG レンダラーのハードウェアアクセラレーション & 描画最適化 */
+    .leaflet-pane > svg {
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+    }
     /* 地図上のポリゴンパルスアニメーション */
     @keyframes pulse-yellow {
       0%, 100% { fill-opacity: 0.95; stroke-width: 3px; }
@@ -641,12 +646,13 @@
       currentScreen: 'hub', // 'hub' | 'spoke'
       selectedPref: null, // pref object
       selectedLevel: '1', // '1' | '2' | '3' | '4' | 'ALL' | 'WEAK'
-      currentMode: 'locate', // 'locate' | 'name' | 'explore'
+      currentMode: 'locate', // 'locate' | 'name' | 'type' | 'explore'
       activeQuestionList: [],
       currentIndex: 0,
       currentQuestion: null,
       currentChoices: [],
       map: null,
+      svgRenderer: null,
       geoJsonLayer: null,
       cityLayerMap: {}, // code -> [Leaflet layer]
       cityBorderLayers: {}, // parentCityCode -> outer border Leaflet layer
@@ -857,13 +863,17 @@
         return;
       }
 
+      // 拡大・パン時の欠落防止: プリレンダリング余白（padding）を標準の10%から150%に大幅拡張したSVGレンダラー
+      state.svgRenderer = L.svg({ padding: 1.5 });
+
       // Leaflet 地図インスタンス初期化
       // 外部タイルサーバーを使わない完全無地ベクターマップ（ウォーターマークなし）
       state.map = L.map('map', {
         zoomControl: false,
         attributionControl: false,
         minZoom: 4,
-        maxZoom: 16
+        maxZoom: 16,
+        renderer: state.svgRenderer
       }).setView([36.5, 138.0], 7);
 
       // ズームコントロール（スマホではピンチ操作が快適なためPC画面でのみ表示）
@@ -1077,7 +1087,10 @@
 
     // 地図ポリゴン描画（2層レイヤー構造: 下層=行政区破線 / 上層=政令市外郭実線）
     function renderGeoJsonLayer(geoData) {
+      const renderer = state.svgRenderer || L.svg({ padding: 1.5 });
+
       state.geoJsonLayer = L.geoJSON(geoData, {
+        renderer: renderer,
         style: (feature) => {
           const rawCode = feature.properties.N03_007;
           const code = WARD_TO_CITY[rawCode] || rawCode;
@@ -1129,6 +1142,7 @@
         const merged = mergeFeaturesForCity(featList);
         if (merged) {
           const outerLayer = L.geoJSON(merged, {
+            renderer: renderer,
             style: () => getCityOuterBorderStyle(cityCode),
             interactive: false
           }).addTo(state.map);
