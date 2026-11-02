@@ -1503,11 +1503,24 @@ html_template = f'''<!DOCTYPE html>
         nextQuestion();
       }};
 
-      // 記入モード: フォーム送信処理
+      // 記入モード: フォーム送信処理 (回答または次問進行)
       document.getElementById('form-type-answer').onsubmit = (e) => {{
         e.preventDefault();
         handleTypeAnswer();
       }};
+
+      // グローバルキーボードショートカット (Enter / Space で次問へ進行)
+      window.addEventListener('keydown', (e) => {{
+        if (state.currentScreen !== 'spoke') return;
+        // 日本語IME変換中のEnter（isComposing）は誤爆防止のため無視
+        if (e.isComposing || e.keyCode === 229) return;
+
+        // 回答後のフィードバック表示中に Enter または Space が押されたら次へ
+        if (state.isAnswering && (e.key === 'Enter' || e.key === ' ')) {{
+          e.preventDefault();
+          nextQuestion();
+        }}
+      }});
     }});
 
     function switchModeUI() {{
@@ -1695,7 +1708,10 @@ html_template = f'''<!DOCTYPE html>
        記入モード: 完全一致回答処理
        ======================================================== */
     function handleTypeAnswer() {{
-      if (state.isAnswering) return;
+      if (state.isAnswering) {{
+        nextQuestion();
+        return;
+      }}
       const input = document.getElementById('input-type-answer');
       const inputVal = (input.value || '').trim();
       if (!inputVal) {{
@@ -1732,7 +1748,11 @@ html_template = f'''<!DOCTYPE html>
             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
             <span>正解！ 『${{targetMuni.n}}』（${{targetMuni.k}}）</span>
           </div>
-          <button id="btn-type-next-fast" class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition">次へ →</button>
+          <button id="btn-type-next-fast" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition flex items-center gap-1 shadow">
+            <span>次へ</span>
+            <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] bg-emerald-800/80 text-emerald-200 rounded border border-emerald-400/50 font-mono">Enter ↵</kbd>
+            <span class="sm:hidden">→</span>
+          </button>
         `;
         document.getElementById('btn-type-next-fast').onclick = () => nextQuestion();
 
@@ -1747,11 +1767,17 @@ html_template = f'''<!DOCTYPE html>
           <div class="text-xs text-rose-300 font-medium">
             <span class="font-bold text-rose-400">不正解！</span> 正解は『<span class="text-white font-bold">${{targetMuni.n}}</span>』（${{targetMuni.k}}）です。
           </div>
-          <button id="btn-type-next-manual" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-bold text-white transition shrink-0 active:scale-95">
-            次へ →
+          <button id="btn-type-next-manual" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm transition shrink-0 active:scale-95 flex items-center gap-1.5 shadow-lg">
+            <span>次へ</span>
+            <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] bg-slate-900/80 text-amber-200 rounded border border-amber-400/50 font-mono shadow-sm">Enter ↵</kbd>
+            <span class="sm:hidden font-black">→</span>
           </button>
         `;
-        document.getElementById('btn-type-next-manual').onclick = () => nextQuestion();
+        const btnNext = document.getElementById('btn-type-next-manual');
+        btnNext.onclick = () => nextQuestion();
+        setTimeout(() => {{
+          btnNext.focus();
+        }}, 30);
       }}
     }}
 
@@ -1874,7 +1900,11 @@ html_template = f'''<!DOCTYPE html>
             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
             <span>正解！ ${{targetMuni.n}}（${{TYPE_LABELS[targetMuni.t] || ''}}）</span>
           </div>
-          <button id="btn-next-fast" class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition">次へ →</button>
+          <button id="btn-next-fast" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition flex items-center gap-1 shadow">
+            <span>次へ</span>
+            <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] bg-emerald-800/80 text-emerald-200 rounded border border-emerald-400/50 font-mono">Enter ↵</kbd>
+            <span class="sm:hidden">→</span>
+          </button>
         `;
         document.getElementById('btn-next-fast').onclick = () => nextQuestion();
 
@@ -1895,11 +1925,17 @@ html_template = f'''<!DOCTYPE html>
             <span class="font-bold text-rose-400">惜しい！</span> そこは『${{clickedName}}』です。<br>
             <span class="text-amber-300 font-semibold">黄色く光っている場所</span>が正解の『${{targetMuni.n}}』です。
           </div>
-          <button id="btn-next-manual" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-bold text-white transition shrink-0 active:scale-95">
-            次へ →
+          <button id="btn-next-manual" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm transition shrink-0 active:scale-95 flex items-center gap-1.5 shadow-lg">
+            <span>次へ</span>
+            <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] bg-slate-900/80 text-amber-200 rounded border border-amber-400/50 font-mono shadow-sm">Enter ↵</kbd>
+            <span class="sm:hidden font-black">→</span>
           </button>
         `;
-        document.getElementById('btn-next-manual').onclick = () => nextQuestion();
+        const btnNext = document.getElementById('btn-next-manual');
+        btnNext.onclick = () => nextQuestion();
+        setTimeout(() => {{
+          btnNext.focus();
+        }}, 30);
       }}
     }}
 
