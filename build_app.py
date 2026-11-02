@@ -1231,11 +1231,17 @@ html_template = f'''<!DOCTYPE html>
           // ホバー・クリックイベント
           layer.on({{
             mouseover: () => {{
+              // 4択・記入モード中は出題対象のみが黄色く目立つべきなので、他自治体のホバー演出は無効化
+              if (state.currentMode === 'name' || state.currentMode === 'type') return;
+
               if (isMuniTargetInCurrentStage(code) || state.currentMode === 'explore') {{
                 highlightCity(code, 'hover');
               }}
             }},
             mouseout: () => {{
+              // 4択・記入モード中はリセット処理を行わない（黄色の消失を完全防止）
+              if (state.currentMode === 'name' || state.currentMode === 'type') return;
+
               resetCityHighlight(code);
             }},
             click: (e) => {{
@@ -1346,7 +1352,15 @@ html_template = f'''<!DOCTYPE html>
       }}
     }}
 
-    function resetCityHighlight(code) {{
+    function resetCityHighlight(code, force = false) {{
+      // 出題中の自治体（特に4択・記入モード）は、次問へ進む際の明示的なforce指定がない限り絶対に解除しない！
+      if (!force && state.currentQuestion && state.currentQuestion.c === code) {{
+        if (state.currentMode === 'name' || state.currentMode === 'type' || (state.currentMode === 'locate' && !state.isAnswering)) {{
+          highlightCity(code, 'question');
+          return;
+        }}
+      }}
+
       const layers = state.cityLayerMap[code];
       if (layers) {{
         layers.forEach(l => {{
@@ -1364,6 +1378,10 @@ html_template = f'''<!DOCTYPE html>
       Object.keys(state.cityLayerMap).forEach(code => {{
         resetCityHighlight(code);
       }});
+      // 4択または記入モードで出題中の自治体があれば、確実にイエローハイライトを維持
+      if (state.currentQuestion && (state.currentMode === 'name' || state.currentMode === 'type')) {{
+        highlightCity(state.currentQuestion.c, 'question');
+      }}
     }}
 
     // 親切なトースト通知
@@ -1674,9 +1692,9 @@ html_template = f'''<!DOCTYPE html>
         return;
       }}
 
-      // 前回のハイライト解除
+      // 前回のハイライト解除（force: true で確実に解除）
       if (state.currentQuestion) {{
-        resetCityHighlight(state.currentQuestion.c);
+        resetCityHighlight(state.currentQuestion.c, true);
       }}
 
       state.currentQuestion = state.activeQuestionList[state.currentIndex];
@@ -1904,6 +1922,9 @@ html_template = f'''<!DOCTYPE html>
         showExploreDetails(clickedCode);
         return;
       }}
+
+      // 4択問題・記入問題ではポリゴンクリックによる回答は受け付けない（出題ハイライトも完全保護）
+      if (state.currentMode === 'name' || state.currentMode === 'type') return;
 
       // 出題対象外の自治体をタップしたときの救済通知
       if (!isMuniTargetInCurrentStage(clickedCode)) {{
