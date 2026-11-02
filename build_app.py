@@ -1326,7 +1326,8 @@ html_template = f'''<!DOCTYPE html>
             opacity: 1
           }});
         }} else if (mode === 'hover') {{
-          if (state.currentQuestion && state.currentQuestion.c === code) return;
+          // 4択または記入モードで黄色く光っている出題自治体のみ、ホバーの上書きを防ぐ
+          if ((state.currentMode === 'name' || state.currentMode === 'type') && state.currentQuestion && state.currentQuestion.c === code) return;
           l.setStyle({{
             fillColor: '#e2e8f0',
             weight: isWard ? 1.2 : 2.2,
@@ -1346,16 +1347,17 @@ html_template = f'''<!DOCTYPE html>
         }} else if (mode === 'wrong') {{
           borderLayer.setStyle({{ color: '#dc2626', weight: 3.0, opacity: 1 }});
         }} else if (mode === 'hover') {{
-          if (state.currentQuestion && state.currentQuestion.c === code) return;
+          if ((state.currentMode === 'name' || state.currentMode === 'type') && state.currentQuestion && state.currentQuestion.c === code) return;
           borderLayer.setStyle({{ color: '#94a3b8', weight: 2.6, opacity: 1 }});
         }}
       }}
     }}
 
     function resetCityHighlight(code, force = false) {{
-      // 出題中の自治体（特に4択・記入モード）は、次問へ進む際の明示的なforce指定がない限り絶対に解除しない！
+      // 4択・記入モードの出題中自治体は、次問へ進む際の明示的なforce指定がない限り絶対に黄色を解除しない
+      // ※場所当てモードでは答えが分かってしまうため絶対に黄色化しない！
       if (!force && state.currentQuestion && state.currentQuestion.c === code) {{
-        if (state.currentMode === 'name' || state.currentMode === 'type' || (state.currentMode === 'locate' && !state.isAnswering)) {{
+        if (state.currentMode === 'name' || state.currentMode === 'type') {{
           highlightCity(code, 'question');
           return;
         }}
