@@ -250,7 +250,10 @@
           <span>🎯</span><span class="hidden sm:inline ml-1">場所当て</span>
         </button>
         <button class="mode-tab-btn px-2 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-medium text-slate-300 hover:text-white" data-mode="name" title="名前当て4択">
-          <span>🔤</span><span class="hidden sm:inline ml-1">名前当て</span>
+          <span>🔤</span><span class="hidden sm:inline ml-1">4択</span>
+        </button>
+        <button class="mode-tab-btn px-2 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-medium text-slate-300 hover:text-white" data-mode="type" title="名前記入（完全一致）">
+          <span>✍️</span><span class="hidden sm:inline ml-1">記入</span>
         </button>
         <button class="mode-tab-btn px-2 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-medium text-slate-300 hover:text-white" data-mode="explore" title="自由閲覧モード">
           <span>🔍</span><span class="hidden sm:inline ml-1">探索</span>
@@ -350,7 +353,40 @@
             </div>
           </div>
 
-          <!-- モード3: エクスプローラー (閲覧・予習) ドック -->
+          <!-- モード3: 記入 (自由記述・完全一致) ドック -->
+          <div id="dock-type" class="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-2xl hidden">
+            <div class="flex items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0"></span>
+                <span class="text-[11px] sm:text-xs font-bold text-amber-300 truncate">黄色の自治体名を入力（市区町村まで）：</span>
+                <span id="type-accuracy-tag" class="text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded-full border shrink-0 text-slate-400 bg-slate-700/40 border-slate-600/40">正答率: --%</span>
+              </div>
+              <span id="type-progress-tag" class="text-[11px] sm:text-xs font-medium text-slate-400 shrink-0">問題 1 / 10</span>
+            </div>
+
+            <!-- 入力フォーム & 回答ボタン & スキップボタン -->
+            <form id="form-type-answer" class="flex items-center gap-1.5 sm:gap-2" onsubmit="return false;">
+              <input type="text" id="input-type-answer" 
+                placeholder="例: 静岡市葵区、沼津市、函南町" 
+                class="flex-1 bg-slate-900/90 border border-slate-600 text-white placeholder-slate-500 text-sm sm:text-base font-bold px-3 py-1.5 sm:py-2 rounded-lg focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" />
+              <button type="submit" id="btn-type-submit" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm transition active:scale-95 shrink-0 shadow">
+                回答
+              </button>
+              <button type="button" id="btn-type-skip" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-slate-700/70 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition active:scale-95 shrink-0">
+                スキップ →
+              </button>
+            </form>
+
+            <!-- フィードバック結果バー (正解/不正解時に出現) -->
+            <div id="type-feedback-bar" class="mt-2 pt-2 border-t border-slate-700/60 hidden">
+              <div id="type-feedback-content" class="flex items-center justify-between gap-2">
+                <!-- JSで動的更新 -->
+              </div>
+            </div>
+          </div>
+
+          <!-- モード4: エクスプローラー (閲覧・予習) ドック -->
           <div id="dock-explore" class="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-2xl hidden">
             <div id="explore-empty-state" class="text-center py-1 sm:py-2 text-slate-400 text-xs">
               地図上のポリゴンをタップすると自治体情報が表示されます
@@ -1364,11 +1400,21 @@
       document.getElementById('btn-locate-skip').onclick = () => {
         nextQuestion();
       };
+      document.getElementById('btn-type-skip').onclick = () => {
+        nextQuestion();
+      };
+
+      // 記入モード: フォーム送信処理
+      document.getElementById('form-type-answer').onsubmit = (e) => {
+        e.preventDefault();
+        handleTypeAnswer();
+      };
     });
 
     function switchModeUI() {
       document.getElementById('dock-locate').classList.toggle('hidden', state.currentMode !== 'locate');
       document.getElementById('dock-name').classList.toggle('hidden', state.currentMode !== 'name');
+      document.getElementById('dock-type').classList.toggle('hidden', state.currentMode !== 'type');
       document.getElementById('dock-explore').classList.toggle('hidden', state.currentMode !== 'explore');
     }
 
@@ -1448,6 +1494,11 @@
         accTagName.textContent = acc.text;
         accTagName.className = `text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded-full border shrink-0 ${acc.color}`;
       }
+      const accTagType = document.getElementById('type-accuracy-tag');
+      if (accTagType) {
+        accTagType.textContent = acc.text;
+        accTagType.className = `text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded-full border shrink-0 ${acc.color}`;
+      }
     }
 
     function loadQuestion() {
@@ -1524,6 +1575,84 @@
 
         // 4択ボタンの生成
         generateChoices(q);
+      } else if (state.currentMode === 'type') {
+        // 記入モード: 地図上のポリゴンをイエローハイライト
+        document.getElementById('type-progress-tag').textContent = `問 ${currentNum} / ${totalQ}`;
+        highlightCity(q.c, 'question');
+
+        const input = document.getElementById('input-type-answer');
+        input.value = '';
+        input.disabled = false;
+        document.getElementById('btn-type-submit').disabled = false;
+        document.getElementById('type-feedback-bar').classList.add('hidden');
+        setTimeout(() => {
+          input.focus();
+        }, 50);
+      }
+    }
+
+
+    /* ========================================================
+       記入モード: 完全一致回答処理
+       ======================================================== */
+    function handleTypeAnswer() {
+      if (state.isAnswering) return;
+      const input = document.getElementById('input-type-answer');
+      const inputVal = (input.value || '').trim();
+      if (!inputVal) {
+        showToast('自治体名を入力してください');
+        input.focus();
+        return;
+      }
+
+      state.isAnswering = true;
+      input.disabled = true;
+      document.getElementById('btn-type-submit').disabled = true;
+
+      const targetMuni = state.currentQuestion;
+      // 完全一致判定: 全角・半角スペースを除去して自治体名（例: 沼津市、函南町、静岡市葵区）と照合
+      const cleanInput = inputVal.replace(/[\s\u3000]+/g, '');
+      const cleanTarget = targetMuni.n.replace(/[\s\u3000]+/g, '');
+      const isCorrect = (cleanInput === cleanTarget);
+
+      Store.recordAnswer(targetMuni.c, isCorrect);
+      updateSpokeHeaderProgress();
+      setupLevelTabs();
+      updateCurrentAccuracyTag();
+
+      const feedbackBar = document.getElementById('type-feedback-bar');
+      const feedbackContent = document.getElementById('type-feedback-content');
+      feedbackBar.classList.remove('hidden');
+
+      if (isCorrect) {
+        sound.playCorrect();
+        highlightCity(targetMuni.c, 'correct');
+
+        feedbackContent.innerHTML = `
+          <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            <span>正解！ 『${targetMuni.n}』（${targetMuni.k}）</span>
+          </div>
+          <button id="btn-type-next-fast" class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition">次へ →</button>
+        `;
+        document.getElementById('btn-type-next-fast').onclick = () => nextQuestion();
+
+        state.feedbackTimer = setTimeout(() => {
+          nextQuestion();
+        }, 1100);
+      } else {
+        sound.playWrong();
+        highlightCity(targetMuni.c, 'wrong');
+
+        feedbackContent.innerHTML = `
+          <div class="text-xs text-rose-300 font-medium">
+            <span class="font-bold text-rose-400">不正解！</span> 正解は『<span class="text-white font-bold">${targetMuni.n}</span>』（${targetMuni.k}）です。
+          </div>
+          <button id="btn-type-next-manual" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-bold text-white transition shrink-0 active:scale-95">
+            次へ →
+          </button>
+        `;
+        document.getElementById('btn-type-next-manual').onclick = () => nextQuestion();
       }
     }
 
